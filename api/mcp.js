@@ -1,8 +1,35 @@
-import { db } from "hatchable";
+import { db, storage } from "hatchable";
 
 export const access = "public";
 
 const tools = [
+  {
+    name: "gnani_speech_to_text",
+    description: "Convert base64 audio to text using Gnani STT. Supports Hindi, English and Hinglish.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        audio_base64: { type: "string" },
+        language_code: { type: "string", default: "hi-IN" },
+        format: { type: "string", default: "wav" }
+      },
+      required: ["audio_base64"]
+    }
+  },
+  {
+    name: "gnani_text_to_speech",
+    description: "Convert text to speech using Gnani TTS and return a public audio URL.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string" },
+        language: { type: "string", default: "hi-en" },
+        voice: { type: "string", default: "Poorvi" },
+        speed: { type: "number", default: 1 }
+      },
+      required: ["text"]
+    }
+  },
   {
     name: "create_order",
     description: "Create a mock Pine Labs order. Supports test_mode values: balance_low, timeout, malformed.",
@@ -178,6 +205,62 @@ export default async function (req, res) {
   if (method === "tools/call") {
     const name = body.params?.name;
     const args = body.params?.arguments || {};
+
+    if (name === "gnani_speech_to_text") {
+      const key = process.env.GNANI_API_KEY;
+      if (!key) return res.json(jsonRpc(id, { content:[{type:"text",text:JSON.stringify({success:false,error:"GNANI_API_KEY_NOT_CONFIGURED"})}], isError:true }));
+      const raw = String(args.audio_base64 || "");
+      if (!raw) return res.json(errorRpc(id, -32602, "audio_base64 is required"));
+      const bytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      const form = new FormData();
+      form.append("audio_file", new Blob([bytes], {type:"audio/wav"}), "audio.wav");
+      form.append("language_code", String(args.language_code || "hi-IN"));
+      form.append("format", String(args.format || "wav"));
+      const upstream = await fetch("https://api.vachana.ai/stt/v3", {
+        method:"POST",
+        headers:{"X-API-Key-ID":key},
+        body:form
+      });
+      const rawText = await upstream.text();
+      let data;
+      try { data = JSON.parse(rawText); } catch { data = {raw:rawText}; }
+      return res.json(jsonRpc(id, {
+        content:[{type:"text",text:JSON.stringify({
+          success:upstream.ok,
+          status_code:upstream.status,
+          transcript:data.transcript ?? data.text ?? data,
+          request_id:data.request_id ?? null
+        })}],
+        isError:!upstream.ok
+      }));
+    }
+
+    if (name === "gnani_text_to_speech") {
+      const key = process.env.GNANI_API_KEY;
+      if (!key) return res.json(jsonRpc(id, { content:[{type:"text",text:JSON.stringify({success:false,error:"GNANI_API_KEY_NOT_CONFIGURED"})}], isError:true }));
+      const textValue = String(args.text || "");
+      if (!textValue) return res.json(errorRpc(id, -32602, "text is required"));
+      const upstream = await fetch("https://api.vachana.ai/api/v1/tts/inference", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-API-Key-ID":key},
+        body:JSON.stringify({
+          model:"timbre-v2.5",
+          text:textValue,
+          voice:String(args.voice || "Poorvi"),
+          language:String(args.language || "hi-en"),
+          speed:Number(args.speed || 1),
+          output_format:"wav"
+        })
+      });
+      const contentType = upstream.headers.get("content-type") || "audio/wav";
+      if (!upstream.ok) {
+        const err = await upstream.text();
+        return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,status_code:upstream.status,error:err.slice(0,1000)})}],isError:true}));
+      }
+      const buffer = new Uint8Array(await upstream.arrayBuffer());
+      const audioUrl = await storage.put("gnani/" + crypto.randomUUID() + ".wav", buffer, contentType);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:true,audio_url:audioUrl})}],isError:false}));
+    }
 
     if (name === "create_order") {
       const mode = args.test_mode || "success";
