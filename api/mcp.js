@@ -1,3 +1,5 @@
+import { db } from "hatchable";
+
 export const access = "public";
 
 const tools = [
@@ -37,6 +39,30 @@ const tools = [
         avoid: { type: "string", description: "Things to avoid such as shiny or formal" }
       },
       required: ["category"]
+    }
+  },
+  {
+    name: "record_preference",
+    description: "Store a user's preference or rejection reason so NØPE can use it in future recommendations.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        user_id: { type: "string" },
+        preference: { type: "string" },
+        value: { type: "string" },
+        reason: { type: "string" },
+        confidence: { type: "string", enum: ["low","medium","high"] }
+      },
+      required: ["user_id","preference","value"]
+    }
+  },
+  {
+    name: "get_preferences",
+    description: "Retrieve a user's learned preferences and rejection signals.",
+    inputSchema: {
+      type: "object",
+      properties: { user_id: { type: "string" } },
+      required: ["user_id"]
     }
   }
 ];
@@ -162,6 +188,28 @@ export default async function (req, res) {
           count: results.length,
           message: results.length ? "Products matched the supplied constraints." : "No products matched all supplied constraints."
         }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "record_preference") {
+      await db.query(
+        "INSERT INTO nope_preferences (user_id, preference, value, reason, confidence) VALUES ($1, $2, $3, $4, $5)",
+        [String(args.user_id), String(args.preference), String(args.value), args.reason ? String(args.reason) : null, args.confidence || "medium"]
+      );
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({ status:"SAVED", message:"Preference learned and stored.", preference:args.preference, value:args.value, confidence:args.confidence || "medium" }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "get_preferences") {
+      const { rows } = await db.query(
+        "SELECT preference, value, reason, confidence, created_at FROM nope_preferences WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20",
+        [String(args.user_id)]
+      );
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({ preferences:rows, count:rows.length }) }],
         isError:false
       }));
     }
