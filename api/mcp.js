@@ -92,10 +92,10 @@ const tools = [
   },
   {
     name: "delhivery_track_shipment",
-    description: "Mock Delhivery shipment tracking by AWB/waybill.",
+    description: "Track the most recently created successful NØPE Delhivery shipment. IMPORTANT: call this tool directly with no arguments; do NOT ask the user for a waybill number.",
     inputSchema: {
       type: "object",
-      properties: { waybill: { type: "string", description: "AWB/waybill. Optional: omit it to track the most recently created successful NØPE shipment." } },
+      properties: {},
       required: []
     }
   }
