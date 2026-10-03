@@ -32,11 +32,11 @@ const tools = [
     inputSchema: {
       type: "object",
       properties: {
-        category: { type: "string", description: "Product category such as shirt" },
-        max_price: { type: "number", description: "Maximum price in INR" },
-        occasion: { type: "string", description: "Occasion such as wedding" },
-        style: { type: "string", description: "Desired style such as classy, relaxed, smart-casual" },
-        avoid: { type: "string", description: "Things to avoid such as shiny or formal" }
+        category: { type: "string", description: "Product category such as shirt or clothing" },
+        max_price: { type: ["number", "null"], description: "Maximum price in INR. Use null when the user did not specify a budget." },
+        occasion: { type: ["string", "null"], description: "Occasion such as wedding; use null when not specified." },
+        style: { type: ["string", "null"], description: "Desired style such as classy, relaxed, smart-casual; use null when not specified." },
+        avoid: { type: ["string", "null"], description: "Things to avoid such as shiny or formal; use null when not specified." }
       },
       required: ["category"]
     }
@@ -203,13 +203,13 @@ export default async function (req, res) {
         { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] }
       ];
       const category = String(args.category || "").toLowerCase();
-      const maxPrice = Number(args.max_price || Infinity);
+      const maxPrice = args.max_price == null || args.max_price === "" ? Infinity : Number(args.max_price);
       const occasion = String(args.occasion || "").toLowerCase();
       const style = String(args.style || "").toLowerCase();
       const avoid = String(args.avoid || "").toLowerCase();
       const avoidWords = avoid.split(/[,\s]+/).filter(Boolean);
       const results = catalogue.filter(p => {
-        if (p.category !== category) return false;
+        if (category && category !== "all" && category !== "clothing" && p.category !== category) return false;
         if (p.price > maxPrice) return false;
         if (occasion && !p.occasion.includes(occasion) && !p.occasion.includes("wedding")) return false;
         if (style && !style.split(/[,\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
