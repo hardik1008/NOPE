@@ -1,2 +1,6 @@
 [mcp]
 enabled = true
+
+[[secret]]
+name = "GNANI_API_KEY"
+expose = true
