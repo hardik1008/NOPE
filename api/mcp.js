@@ -64,6 +64,40 @@ const tools = [
       properties: { user_id: { type: "string" } },
       required: ["user_id"]
     }
+  },
+  {
+    name: "delhivery_check_serviceability",
+    description: "Mock Delhivery pincode serviceability check. Returns Delhivery-style delivery_codes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pincode: { type: "string", description: "6 digit destination pincode" },
+        payment_mode: { type: "string", enum: ["Prepaid", "COD"], default: "Prepaid" }
+      },
+      required: ["pincode"]
+    }
+  },
+  {
+    name: "delhivery_create_shipment",
+    description: "Mock Delhivery B2C shipment creation. Supports success, no_rider, timeout and malformed test modes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        format: { type: "string", enum: ["json"], default: "json" },
+        shipments: { type: "array", description: "Delhivery shipment objects" },
+        test_mode: { type: "string", enum: ["success", "no_rider", "timeout", "malformed"], default: "success" }
+      },
+      required: ["shipments"]
+    }
+  },
+  {
+    name: "delhivery_track_shipment",
+    description: "Mock Delhivery shipment tracking by AWB/waybill.",
+    inputSchema: {
+      type: "object",
+      properties: { waybill: { type: "string" } },
+      required: ["waybill"]
+    }
   }
 ];
 
@@ -224,6 +258,101 @@ export default async function (req, res) {
       );
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({ preferences:rows, count:rows.length }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "delhivery_check_serviceability") {
+      const pin = String(args.pincode || "");
+      const postal = {
+        pin: Number(pin),
+        pre_paid: args.payment_mode === "COD" ? "N" : "Y",
+        cod: "Y",
+        pickup: "Y",
+        repl: "Y",
+        remarks: ""
+      };
+      if (pin === "000000" || pin === "110008") {
+        postal.pre_paid = "N";
+        postal.cod = "N";
+        postal.pickup = "N";
+        postal.repl = "N";
+        postal.remarks = "Embargo";
+      }
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({
+          delivery_codes: [{ postal_code: postal }]
+        }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "delhivery_create_shipment") {
+      const mode = args.test_mode || "success";
+      if (mode === "no_rider") {
+        return res.json(jsonRpc(id, {
+          content: [{ type:"text", text: JSON.stringify({
+            success:false,
+            error:"NO_RIDER_AVAILABLE",
+            message:"No delivery rider is currently available for this pincode."
+          }) }],
+          isError:true
+        }));
+      }
+      if (mode === "timeout") {
+        await new Promise(r => setTimeout(r, 11000));
+        return res.json(jsonRpc(id, {
+          content: [{ type:"text", text: JSON.stringify({
+            success:false,
+            error:"UPSTREAM_TIMEOUT",
+            message:"Delhivery upstream timed out."
+          }) }],
+          isError:true
+        }));
+      }
+      if (mode === "malformed") {
+        return res.json(jsonRpc(id, {
+          content: [{ type:"text", text:"{broken-delhivery-response" }],
+          isError:false
+        }));
+      }
+
+      const shipments = Array.isArray(args.shipments) ? args.shipments : [];
+      const s = shipments[0] || {};
+      const waybill = "NOPEAWB" + Date.now();
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({
+          success:true,
+          packages:[{
+            waybill,
+            order:s.order || "",
+            status:"Manifested",
+            serviceable:true,
+            payment_mode:s.payment_mode || "Prepaid"
+          }],
+          waybill,
+          status:"Manifested",
+          message:"Shipment manifested successfully"
+        }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "delhivery_track_shipment") {
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({
+          ShipmentData:[{
+            Shipment:[{
+              AWB:String(args.waybill),
+              Status:{
+                Status:"In Transit",
+                StatusType:"UD",
+                StatusDateTime:new Date().toISOString()
+              },
+              Scans:[]
+            }]
+          }]
+        }) }],
         isError:false
       }));
     }
