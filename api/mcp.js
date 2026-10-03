@@ -66,6 +66,40 @@ const tools = [
     }
   },
   {
+    name: "rank_products",
+    description: "Rank returned NØPE products against current intent and preference memory. Only rank products supplied by the caller; never invent catalogue items.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        products: { type: "array" },
+        preferences: { type: "array" },
+        intent: { type: "string" }
+      },
+      required: ["products"]
+    }
+  },
+  {
+    name: "confirm_purchase",
+    description: "Confirm an order only after the user has explicitly approved the purchase. Use approval=true only when the user clearly said yes/buy/purchase/checkout.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        order_id: { type: "string" },
+        approval: { type: "boolean" }
+      },
+      required: ["order_id","approval"]
+    }
+  },
+  {
+    name: "get_order_timeline",
+    description: "Return the order state and chronological NØPE audit events for transparency and debugging.",
+    inputSchema: {
+      type: "object",
+      properties: { order_id: { type: "string" } },
+      required: ["order_id"]
+    }
+  },
+  {
     name: "delhivery_check_serviceability",
     description: "Mock Delhivery pincode serviceability check. Returns Delhivery-style delivery_codes.",
     inputSchema: {
@@ -177,11 +211,19 @@ export default async function (req, res) {
       }
 
       const orderId = "NOPE-" + Date.now();
+      await db.query(
+        "INSERT INTO nope_orders (order_id, user_id, product_id, amount, currency, state, payment_status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [orderId, String(args.user_id || "demo-user"), String(args.product_id), Number(args.amount), String(args.currency || "INR"), "APPROVED_PENDING_PAYMENT", "PENDING"]
+      );
+      await db.query(
+        "INSERT INTO nope_events (user_id, event_type, order_id, payload) VALUES ($1, $2, $3, $4)",
+        [String(args.user_id || "demo-user"), "ORDER_CREATED", orderId, JSON.stringify({product_id: args.product_id, amount: args.amount})]
+      );
       return res.json(jsonRpc(id, {
         content: [{ type: "text", text: JSON.stringify({
           status: "SUCCESS",
           order_id: orderId,
-          payment_status: "PAID",
+          payment_status: "PENDING",
           amount: args.amount,
           currency: args.currency || "INR",
           product_id: args.product_id,
@@ -189,6 +231,43 @@ export default async function (req, res) {
         }) }],
         isError: false
       }));
+    }
+
+    if (name === "rank_products") {
+      const products = Array.isArray(args.products) ? args.products : [];
+      const prefs = Array.isArray(args.preferences) ? args.preferences : [];
+      const textBlob = JSON.stringify(prefs).toLowerCase() + " " + String(args.intent || "").toLowerCase();
+      const ranked = products.map(p => {
+        let score = 50;
+        const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
+        const hay = JSON.stringify(p).toLowerCase();
+        if (textBlob.includes("relaxed") && (tags.includes("relaxed") || hay.includes("relaxed"))) score += 15;
+        if (textBlob.includes("classy") && (tags.includes("classy") || hay.includes("classy"))) score += 10;
+        if (textBlob.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
+        if (textBlob.includes("formal") && (tags.includes("formal") || hay.includes("formal"))) score -= 25;
+        if (textBlob.includes("shiny") && (tags.includes("shiny") || hay.includes("shiny"))) score -= 30;
+        return {...p, fit_score: Math.max(0, Math.min(100, score))};
+      }).sort((a,b)=>b.fit_score-a.fit_score).slice(0,4);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked})}],isError:false}));
+    }
+
+    if (name === "confirm_purchase") {
+      const orderId = String(args.order_id || "");
+      if (args.approval !== true) {
+        return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,error:"USER_APPROVAL_REQUIRED",message:"Purchase not confirmed because explicit user approval was not provided."})}],isError:true}));
+      }
+      const {rows} = await db.query("SELECT order_id, user_id, amount, currency, state FROM nope_orders WHERE order_id = $1",[orderId]);
+      if (!rows[0]) return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,error:"ORDER_NOT_FOUND"})}],isError:true}));
+      await db.query("UPDATE nope_orders SET state = $1, payment_status = $2, updated_at = now() WHERE order_id = $3",["PAID","PAID",orderId]);
+      await db.query("INSERT INTO nope_events (user_id,event_type,order_id,payload) VALUES ($1,$2,$3,$4)",[rows[0].user_id,"PAYMENT_CONFIRMED",orderId,JSON.stringify({amount:rows[0].amount,currency:rows[0].currency})]);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:true,order_id:orderId,status:"PAID",message:"Payment confirmed after explicit user approval."})}],isError:false}));
+    }
+
+    if (name === "get_order_timeline") {
+      const orderId = String(args.order_id || "");
+      const order = await db.query("SELECT order_id,user_id,product_id,amount,currency,state,payment_status,shipment_waybill,created_at,updated_at FROM nope_orders WHERE order_id = $1",[orderId]);
+      const events = await db.query("SELECT event_type,payload,created_at FROM nope_events WHERE order_id = $1 ORDER BY created_at ASC",[orderId]);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({order:order.rows[0] || null,events:events.rows})}],isError:false}));
     }
 
     if (name === "search_products") {
@@ -230,6 +309,10 @@ export default async function (req, res) {
       await db.query(
         "INSERT INTO nope_preferences (user_id, preference, value, reason, confidence) VALUES ($1, $2, $3, $4, $5)",
         [String(args.user_id), String(args.preference), String(args.value), args.reason ? String(args.reason) : null, args.confidence || "medium"]
+      );
+      await db.query(
+        "INSERT INTO nope_events (user_id, event_type, payload) VALUES ($1, $2, $3)",
+        [String(args.user_id), "PREFERENCE_LEARNED", JSON.stringify({preference:args.preference,value:args.value,reason:args.reason || null,confidence:args.confidence || "medium"})]
       );
       // For rejection-driven shopping flows, return a fresh shortlist together with the saved memory.
       // This makes the learning loop atomic and prevents the agent from stopping after saving feedback.
@@ -324,6 +407,10 @@ export default async function (req, res) {
         "INSERT INTO nope_shipments (order_id, waybill, status) VALUES ($1, $2, $3)",
         [s.order || "", waybill, "Manifested"]
       );
+      if (s.order) {
+        await db.query("UPDATE nope_orders SET state = $1, shipment_waybill = $2, updated_at = now() WHERE order_id = $3",["SHIPMENT_CREATED",waybill,String(s.order)]);
+        await db.query("INSERT INTO nope_events (user_id,event_type,order_id,payload) VALUES ($1,$2,$3,$4)",[String(s.user_id || "demo-user"),"SHIPMENT_CREATED",String(s.order),JSON.stringify({waybill})]);
+      }
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({
           success:true,
