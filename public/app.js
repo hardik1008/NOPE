@@ -61,7 +61,7 @@ async function runNopeVoice(){
  const picks=ranked.slice(0,3);
  const reply=picks.length?"Bilkul! Maine "+picks.length+" options shortlist kiye. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Ye options aapki current requirement ke closest hain. Agar koi pasand nahi aaye, bas reason bata dena — main next options ko usi hisaab se change kar dunga.":"Abhi mujhe exact match nahi mila. Budget ya style mein kya change karna hai, batao — main dobara search karta hoon.";
  transcriptEl.textContent=transcript;stage("Generating NØPE voice response","Sending the final decision to Gnani TTS.","nTts");
- const t=await mcp("gnani_text_to_speech",{text:reply,language:"hi-en",voice:"Poorvi",speed:1.2});
+ const t=await mcp("gnani_text_to_speech",{text:reply,language:"hi-en",voice:"Poorvi",speed:1.15});
  if(!t.success)throw Error(t.error||"TTS failed");
  const bin=atob(t.audio_base64||""),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
  if(audio._objectUrl)URL.revokeObjectURL(audio._objectUrl);audio._objectUrl=URL.createObjectURL(new Blob([arr],{type:t.audio_content_type||"audio/wav"}));audio.src=audio._objectUrl;audio.hidden=false;audio.load();
