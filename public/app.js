@@ -3,9 +3,122 @@
 const $=id=>document.getElementById(id);
 const API="/api/mcp";
 // NØPE permanent voice configuration.
-const NOPE_VOICE="Kaveri";
+const NOPE_VOICE="Nalini";
 const NOPE_LANGUAGE="hi-IN";
 const NOPE_SPEED=1.0;
+
+function injectIntelligenceUI(){
+  const store=document.querySelector(".store");
+  if(!store||document.getElementById("nopeIntel"))return;
+  const s=document.createElement("style");
+  s.textContent=`
+  #nopeIntel{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:18px}
+  .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fbfcfe;padding:16px}
+  .intelHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .intelTitle{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+  .intelLive{font-size:10px;font-weight:850;padding:5px 8px;border-radius:999px;background:#111;color:#fff}
+  .understood{display:flex;flex-wrap:wrap;gap:7px}
+  .signal{padding:7px 9px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:11px;font-weight:750}
+  .signal.hard{border-color:#f0c7c7;background:#fff7f7}
+  .signal.good{border-color:#ccebd9;background:#f4fff8}
+  .metricRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .metric{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:10px}
+  .metric b{display:block;font-size:18px}.metric span{font-size:10px;color:#667085}
+  .memoryLine{font-size:12px;line-height:1.6;color:#475467}
+  .memoryLine b{color:#111}
+  .decisionBar{margin-top:12px;border-radius:14px;background:#111;color:#fff;padding:12px;font-size:12px}
+  .decisionBar span{opacity:.72}
+  .nopeReject{margin-top:7px;width:100%;border:1px solid #f1caca;background:#fff7f7;color:#a61b1b;border-radius:10px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
+  .whyBtn{margin-top:7px;width:100%;border:1px solid #e4e7ec;background:#fff;color:#111;border-radius:10px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
+  .whyBox{display:none;margin-top:8px;padding:9px;border-radius:10px;background:#f8fafc;font-size:10px;color:#475467;line-height:1.45}
+  .demoBtn{background:#111!important;color:#fff!important;border-color:#111!important}
+  @media(max-width:900px){#nopeIntel{grid-template-columns:1fr}.metricRow{grid-template-columns:repeat(3,1fr)}}
+  `;
+  document.head.appendChild(s);
+  const intel=document.createElement("div");
+  intel.id="nopeIntel";
+  intel.innerHTML=`
+    <div class="intelCard">
+      <div class="intelHead"><div class="intelTitle">🧠 NØPE intelligence</div><div class="intelLive">LIVE DECISION LAYER</div></div>
+      <div class="label">I understood</div>
+      <div id="understood" class="understood">
+        <span class="signal">Waiting for intent…</span>
+      </div>
+      <div class="metricRow" style="margin-top:12px">
+        <div class="metric"><b id="searchedMetric">—</b><span>catalogue considered</span></div>
+        <div class="metric"><b id="eliminatedMetric">—</b><span>eliminated</span></div>
+        <div class="metric"><b id="shortlistedMetric">—</b><span>shortlisted</span></div>
+      </div>
+      <div id="decisionBar" class="decisionBar"><b>Waiting.</b> <span>NØPE will show its decision path here.</span></div>
+    </div>
+    <div class="intelCard">
+      <div class="intelHead"><div class="intelTitle">🧬 Preference memory</div><div id="memoryConfidence" class="signal">No new signal</div></div>
+      <div id="memoryLive" class="memoryLine">NØPE will show what it learned and why.</div>
+      <button id="demoRun" class="shopBtn demoBtn" type="button">▶ Run guided NØPE demo</button>
+    </div>`;
+  store.appendChild(intel);
+}
+function updateIntelligence(q,found,picks){
+  const text=String(q||"").toLowerCase();
+  const budget=(text.match(/(?:₹|rs\\.?|rupees?\\s*)([0-9,]+)/i)||[])[1];
+  const chips=[
+    /wedding|shaadi|marriage/.test(text)?"Wedding":null,
+    /shirt|clothing|top/.test(text)?"Shirt":null,
+    budget?"Budget ≤ ₹"+budget:null,
+    /classy/.test(text)?"Classy":null,
+    /relaxed|casual|chill|youthful/.test(text)?"Relaxed":null,
+    /shiny|chamak/.test(text)?"✕ Shiny":null,
+    /formal|uncle/.test(text)?"✕ Too formal":null
+  ].filter(Boolean);
+  const u=document.getElementById("understood"); if(u)u.innerHTML=(chips.length?chips:["Intent understood"]).map(x=>'<span class="signal '+(x.startsWith("✕")?"hard":"good")+'">'+x+'</span>').join("");
+  const total=Math.max(found?.count||found?.results?.length||0,0), selected=(picks||[]).length;
+  const sm=document.getElementById("searchedMetric"), em=document.getElementById("eliminatedMetric"), ss=document.getElementById("shortlistedMetric");
+  if(sm)sm.textContent=total||"0"; if(em)em.textContent=Math.max(0,total-selected); if(ss)ss.textContent=selected;
+  const bar=document.getElementById("decisionBar"); if(bar)bar.innerHTML='<b>Decision:</b> NØPE filtered the catalogue for your constraints and kept '+selected+' strongest options. <span>It will learn from your rejection.</span>';
+}
+function showLearnedMemory(pref,reason){
+  const m=document.getElementById("memoryLive"), c=document.getElementById("memoryConfidence");
+  if(m)m.innerHTML='<b>LEARNED TODAY</b><br>Dislike: '+pref+'<br>Reason: “'+reason+'”<br><span style="color:#667085">Temporary context · medium confidence</span>';
+  if(c){c.textContent="NEW SIGNAL · MEDIUM";c.className="signal good"}
+}
+function explainProduct(p){
+  const box=document.createElement("div");
+  box.style.cssText="position:fixed;inset:0;background:#0008;z-index:9999;display:grid;place-items:center;padding:20px";
+  box.innerHTML='<div style="max-width:430px;background:#fff;border-radius:20px;padding:22px;box-shadow:0 20px 60px #0004"><div style="font-size:11px;font-weight:900;letter-spacing:.08em">WHY NØPE PICKED THIS</div><h2 style="margin:8px 0 6px">'+p.name+'</h2><div style="font-weight:850">₹'+p.price+'</div><p style="font-size:13px;line-height:1.55;color:#475467">✓ Within your current budget<br>✓ Fits the requested occasion and style<br>✓ Avoids your explicit exclusions<br>✓ Compared against the available catalogue</p><button id="closeWhy" class="shopBtn">Got it</button></div>';
+  document.body.appendChild(box);document.getElementById("closeWhy").onclick=()=>box.remove();
+}
+function installRecommendationActions(items){
+  document.querySelectorAll("[data-why]").forEach(b=>b.onclick=()=>explainProduct(items[Number(b.dataset.why)]||items[0]));
+  document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{
+    const p=items[Number(b.dataset.reject)]||items[0];
+    const reason=b.dataset.reason||"too formal";
+    try{
+      stage("Rejection received","NØPE is turning your “Nope” into a preference signal.","nMemory");
+      const saved=await mcp("record_preference",{user_id:"demo-user",preference:"formality",value:"avoid overly formal",reason,confidence:"medium"});
+      if(saved.status!=="SAVED")throw Error("Preference was not saved");
+      showLearnedMemory("avoid overly formal",reason);
+      stage("Memory updated","Formality negative signal saved. Searching again with the new constraint.","nCatalog");
+      const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:"shiny formal"});
+      const products=found.results||[];
+      const ranked=products.length?(await mcp("rank_products",{products,preferences:[{preference:"formality",value:"avoid overly formal"}],intent:transcript})).results||products:products;
+      renderShopMatches(ranked);
+      updateIntelligence(transcript,{count:products.length},ranked.slice(0,3));
+      stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
+      setStatus("✓ Learned from rejection and changed the shortlist","ok");
+    }catch(e){setStatus("Learning error: "+e.message,"err")}
+  });
+}
+function installGuidedDemo(){
+  const b=document.getElementById("demoRun");if(!b||b.dataset.ready)return;b.dataset.ready="1";
+  b.onclick=async()=>{
+    b.disabled=true;b.textContent="● Running NØPE journey…";
+    const q="Mujhe next Saturday friend ki wedding ke liye classy relaxed shirt chahiye, ₹3000 ke andar. Shiny bilkul nahi, zyada formal nahi.";
+    await processTranscript(q);
+    setTimeout(()=>{const r=document.querySelector("[data-reject]");if(r)r.click()},1800);
+    setTimeout(()=>{b.disabled=false;b.textContent="▶ Run guided NØPE demo"},5200);
+  };
+}
+injectIntelligenceUI();
 const SHOP_PRODUCTS=[
 {id:"linen-resort",name:"Linen Blend Resort Shirt",price:2499,emoji:"👕",meta:"NØPE Atelier · Linen blend · Relaxed · Wedding"},
 {id:"textured-oxford",name:"Textured Oxford Casual Shirt",price:2299,emoji:"👔",meta:"Textured cotton · Smart casual"},
@@ -31,8 +144,8 @@ function renderShopMatches(items){
  const root=$("shopProducts");
  const tones=["#243447","#d9c3a5","#365b75","#202124","#eee5d0","#8b4b35","#38454b","#f4f4f1"];
  const brands=["NØPE Atelier","Casa Linen","Urban Loom","Sunday Club","Monarch","NØPE Basics"];
- root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs";return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
- root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});
+ root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'" data-reason="Too formal">✕ Nope — too formal</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});installRecommendationActions(items);
 }
 async function mcp(name,args){
  setStatus("Calling "+name+"…");
@@ -63,6 +176,7 @@ async function runNopeVoice(){
  if(products.length){const rr=await mcp("rank_products",{products,preferences:prefs.preferences||[],intent:transcript});ranked=rr.results||products}
  if(ranked.length)renderShopMatches(ranked);
  const picks=ranked.slice(0,3);
+ updateIntelligence(transcript,found,picks);
  const reply=picks.length?"Yay... aapke liye kuch really lovely options mil gaye hain. Mainne "+picks.length+" options shortlist kiye hain. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Inmein se pehla option mujhe especially aapki current style, occasion aur budget ke liye achchha lag raha hai. Aap aaraam se dekhiye. Aur agar koi option bilkul aapke type ka na lage, mujhe bas bata dena ki kya pasand nahi aaya. Main us feedback ko samajh kar next options aur better kar dungi.":"Hmm... abhi mujhe aapke liye exact match nahi mila. But no worries at all. Aap bas mujhe bata dijiye ki budget ya style mein kya change karna hai... main calmly dobara search karke aapke liye better options dhoondhungi.";
  transcriptEl.textContent=transcript;stage("Generating NØPE voice response","Sending the final decision to Gnani TTS.","nTts");
  const t=await mcp("gnani_text_to_speech",{text:reply,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});
@@ -122,6 +236,7 @@ $("cartBtn").onclick=async()=>{
  }catch(e){setStatus("Checkout error: "+e.message,"err")}
 };
 renderShop("all");
+installGuidedDemo();
 if(!navigator.mediaDevices?.getUserMedia)hint.textContent="Mic unavailable — use the text box below.";
 else hint.textContent="Click 🎙️ → Allow microphone → speak → click again to send";
 window.addEventListener("error",e=>{console.error(e.error||e.message);setStatus("Page error: "+e.message,"err")});
