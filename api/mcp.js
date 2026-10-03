@@ -385,7 +385,8 @@ export default async function (req, res) {
         { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, category:"shirt", occasion:"wedding", style:"relaxed stylish smart-casual youthful", tags:["matte","relaxed","stylish","youthful"] },
         { product_id:"SHIRT-006", name:"Silk Finish Party Shirt", price:2699, category:"shirt", occasion:"party wedding", style:"stylish bold", tags:["shiny","party"] },
         { product_id:"SHIRT-007", name:"Relaxed Linen Shirt", price:2399, category:"shirt", occasion:"wedding travel", style:"relaxed classy", tags:["matte","linen","relaxed"] },
-        { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] }
+        { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] },
+        { product_id:"SHIRT-009", name:"Camp Collar Resort Shirt", price:1899, category:"shirt", occasion:"wedding", style:"relaxed stylish youthful", tags:["matte","printed","relaxed","youthful"] }
       ];
       const category = String(args.category || "").toLowerCase();
       const maxPrice = args.max_price == null || args.max_price === "" ? Infinity : Number(args.max_price);
@@ -400,7 +401,7 @@ export default async function (req, res) {
         if (style && !style.split(/[,\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
         if (avoidWords.some(w => p.tags.some(t => t.includes(w)))) return false;
         return true;
-      }).slice(0,4);
+      }).slice(0,8);
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({
           results,
