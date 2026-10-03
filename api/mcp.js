@@ -95,8 +95,8 @@ const tools = [
     description: "Mock Delhivery shipment tracking by AWB/waybill.",
     inputSchema: {
       type: "object",
-      properties: { waybill: { type: "string" } },
-      required: ["waybill"]
+      properties: { waybill: { type: "string", description: "AWB/waybill. Optional: omit it to track the most recently created successful NØPE shipment." } },
+      required: []
     }
   }
 ];
@@ -320,6 +320,10 @@ export default async function (req, res) {
       const shipments = Array.isArray(args.shipments) ? args.shipments : [];
       const s = shipments[0] || {};
       const waybill = "NOPEAWB" + Date.now();
+      await db.query(
+        "INSERT INTO nope_shipments (order_id, waybill, status) VALUES ($1, $2, $3)",
+        [s.order || "", waybill, "Manifested"]
+      );
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({
           success:true,
@@ -332,13 +336,24 @@ export default async function (req, res) {
           }],
           waybill,
           status:"Manifested",
-          message:"Shipment manifested successfully"
+          message:"Shipment manifested successfully. This waybill can be used for tracking."
         }) }],
         isError:false
       }));
     }
 
     if (name === "delhivery_track_shipment") {
+      let waybill = args.waybill ? String(args.waybill) : "";
+      if (!waybill) {
+        const { rows } = await db.query("SELECT waybill FROM nope_shipments ORDER BY created_at DESC LIMIT 1");
+        waybill = rows[0]?.waybill || "";
+      }
+      if (!waybill) {
+        return res.json(jsonRpc(id, {
+          content: [{ type:"text", text: JSON.stringify({ success:false, error:"NO_SHIPMENT_FOUND", message:"No successful shipment is available to track yet." }) }],
+          isError:true
+        }));
+      }
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({
           ShipmentData:[{
