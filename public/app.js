@@ -25,8 +25,10 @@ function renderShop(filter){
 }
 function renderShopMatches(items){
  const root=$("shopProducts");
- root.innerHTML=items.slice(0,4).map(p=>'<div class="shopProduct"><div class="photo">👕</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="shopMeta">NØPE match · '+(p.category||"shirt")+'</div><button class="shopBtn">Add to bag</button></div>').join("");
- root.querySelectorAll(".shopProduct").forEach((card,i)=>{const b=card.querySelector("button");b.onclick=()=>addToCart(items[i],b)});
+ const tones=["#243447","#d9c3a5","#365b75","#202124","#eee5d0","#8b4b35","#38454b","#f4f4f1"];
+ const brands=["NØPE Atelier","Casa Linen","Urban Loom","Sunday Club","Monarch","NØPE Basics"];
+ root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs";return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});
 }
 async function mcp(name,args){
  setStatus("Calling "+name+"…");
