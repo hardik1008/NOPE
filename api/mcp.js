@@ -273,7 +273,9 @@ export default async function (req, res) {
       }
       const buffer = new Uint8Array(await upstream.arrayBuffer());
       const audioUrl = await storage.put("gnani/" + crypto.randomUUID() + ".wav", buffer, contentType);
-      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:true,audio_url:audioUrl})}],isError:false}));
+      let binary = ""; for (let i = 0; i < buffer.length; i += 0x8000) binary += String.fromCharCode(...buffer.subarray(i, i + 0x8000));
+      const audio_base64 = btoa(binary);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:true,audio_url:audioUrl,audio_base64,audio_content_type:contentType})}],isError:false}));
     }
 
     if (name === "create_order") {
