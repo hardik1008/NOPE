@@ -11,7 +11,7 @@ const tools = [
       properties: {
         audio_base64: { type: "string" },
         language_code: { type: "string", default: "hi-IN" },
-        format: { type: "string", default: "wav" }
+        format: { type: "string", enum: ["transcribe","verbatim","formatted"], default: "transcribe" }
       },
       required: ["audio_base64"]
     }
@@ -223,10 +223,11 @@ export default async function (req, res) {
         "Content-Type: audio/wav\r\n\r\n");
       const fileTail = enc.encode("\r\n--" + boundary + "--\r\n");
       const languagePart = part("language_code", String(args.language_code || "hi-IN"));
-      const formatPart = part("format", String(args.format || "wav"));
+      const formatPart = part("format", String(args.format || "transcribe"));
+      const preferredLanguagePart = part("preferred_language", String(args.preferred_language || args.language_code || "hi-IN"));
       const body = new Uint8Array(languagePart.length + formatPart.length + fileHead.length + bytes.length + fileTail.length);
       let pos = 0;
-      for (const chunk of [languagePart, formatPart, fileHead, bytes, fileTail]) {
+      for (const chunk of [languagePart, preferredLanguagePart, formatPart, fileHead, bytes, fileTail]) {
         body.set(chunk, pos); pos += chunk.length;
       }
       const upstream = await fetch("https://api.vachana.ai/stt/v3", {
