@@ -535,7 +535,7 @@ export default async function (req, res) {
       }));
     }
 
-    if (name === "delhivery_track_shipment") {
+    if (name === "delhivery_track_shipment" || name === "delhivery_track_latest_shipment") {
       let waybill = args.waybill ? String(args.waybill) : "";
       if (!waybill) {
         const { rows } = await db.query("SELECT waybill FROM nope_shipments ORDER BY created_at DESC LIMIT 1");
