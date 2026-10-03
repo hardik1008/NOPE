@@ -159,11 +159,11 @@ export default async function (req, res) {
 
     if (name === "search_products") {
       const catalogue = [
-        { product_id:"SHIRT-001", name:"Linen Blend Resort Shirt", price:2499, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual", tags:["matte","breathable","relaxed"] },
+        { product_id:"SHIRT-001", name:"Linen Blend Resort Shirt", price:2499, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual youthful", tags:["matte","breathable","relaxed","youthful"] },
         { product_id:"SHIRT-002", name:"Satin Formal Evening Shirt", price:2899, category:"shirt", occasion:"wedding", style:"formal classy", tags:["shiny","slim","formal"] },
-        { product_id:"SHIRT-003", name:"Textured Oxford Casual Shirt", price:2299, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual", tags:["matte","textured","relaxed"] },
+        { product_id:"SHIRT-003", name:"Textured Oxford Casual Shirt", price:2299, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual youthful", tags:["matte","textured","relaxed","youthful"] },
         { product_id:"SHIRT-004", name:"Premium Slim Tux Shirt", price:2999, category:"shirt", occasion:"wedding", style:"formal sharp", tags:["formal","slim","structured"] },
-        { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, category:"shirt", occasion:"wedding", style:"relaxed stylish smart-casual", tags:["matte","relaxed","stylish"] },
+        { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, category:"shirt", occasion:"wedding", style:"relaxed stylish smart-casual youthful", tags:["matte","relaxed","stylish","youthful"] },
         { product_id:"SHIRT-006", name:"Silk Finish Party Shirt", price:2699, category:"shirt", occasion:"party wedding", style:"stylish bold", tags:["shiny","party"] },
         { product_id:"SHIRT-007", name:"Relaxed Linen Shirt", price:2399, category:"shirt", occasion:"wedding travel", style:"relaxed classy", tags:["matte","linen","relaxed"] },
         { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] }
