@@ -260,18 +260,25 @@ export default async function (req, res) {
         body:JSON.stringify({
           model:"timbre-v2.5",
           text:textValue,
-          voice:String(args.voice || "Poorvi"),
-          language:String(args.language || "hi-en"),
+          voice:String(args.voice || "Nalini"),
+          language:String(args.language || "hi-IN"),
           speed:Number(args.speed || 1),
-          output_format:"wav"
+          sample_rate:16000,
+          encoding:"linear_pcm",
+          container:"wav",
+          num_channels:1
         })
       });
-      const upstreamContentType = upstream.headers.get("content-type") || ""; const contentType = upstreamContentType.toLowerCase().includes("audio/") ? upstreamContentType : "audio/wav";
+      const upstreamContentType = upstream.headers.get("content-type") || ""; const contentType = upstreamContentType.toLowerCase().includes("audio/") ? upstreamContentType : "audio/wav"; const audioFormat = String(args.output_format || "wav");
       if (!upstream.ok) {
         const err = await upstream.text();
         return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,status_code:upstream.status,error:err.slice(0,1000)})}],isError:true}));
       }
-      const buffer = new Uint8Array(await upstream.arrayBuffer());
+      let buffer = new Uint8Array(await upstream.arrayBuffer());
+      const isWav = buffer.length >= 12 && buffer[0]===82 && buffer[1]===73 && buffer[2]===70 && buffer[3]===70 && buffer[8]===87 && buffer[9]===65 && buffer[10]===86 && buffer[11]===69;
+      if (!isWav) {
+        const pcm = buffer; const sampleRate=16000, channels=1, bits=16; const wav=new Uint8Array(44+pcm.length); const dv=new DataView(wav.buffer); const ws=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))}; ws(0,"RIFF"); dv.setUint32(4,36+pcm.length,true); ws(8,"WAVE"); ws(12,"fmt "); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,channels,true); dv.setUint32(24,sampleRate,true); dv.setUint32(28,sampleRate*channels*bits/8,true); dv.setUint16(32,channels*bits/8,true); dv.setUint16(34,bits,true); ws(36,"data"); dv.setUint32(40,pcm.length,true); wav.set(pcm,44); buffer=wav;
+      }
       const audioUrl = await storage.put("gnani/" + crypto.randomUUID() + ".wav", buffer, contentType);
       let binary = ""; for (let i = 0; i < buffer.length; i += 0x8000) binary += String.fromCharCode(...buffer.subarray(i, i + 0x8000));
       const audio_base64 = btoa(binary);
