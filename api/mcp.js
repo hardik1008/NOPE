@@ -230,11 +230,20 @@ export default async function (req, res) {
       for (const chunk of [languagePart, preferredLanguagePart, formatPart, fileHead, bytes, fileTail]) {
         body.set(chunk, pos); pos += chunk.length;
       }
-      const upstream = await fetch("https://api.vachana.ai/stt/v3", {
-        method:"POST",
-        headers:{"X-API-Key-ID":key, "Content-Type":"multipart/form-data; boundary=" + boundary},
-        body
-      });
+      let upstream;
+      let sttError = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          upstream = await fetch("https://api.vachana.ai/stt/v3", {
+            method:"POST",
+            headers:{"X-API-Key-ID":key, "Content-Type":"multipart/form-data; boundary=" + boundary},
+            body
+          });
+          if (upstream.status !== 504) break;
+        } catch (e) { sttError = e; }
+        await new Promise(r => setTimeout(r, 700));
+      }
+      if (!upstream) return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,error:"GNANI_STT_UNAVAILABLE",message:"Gnani speech service is temporarily unavailable. Please try again."})}],isError:true}));
       const rawText = await upstream.text();
       let data;
       try { data = JSON.parse(rawText); } catch { data = {raw:rawText}; }
