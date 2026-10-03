@@ -23,6 +23,21 @@ const tools = [
       properties: { order_id: { type: "string" } },
       required: ["order_id"]
     }
+  },
+  {
+    name: "search_products",
+    description: "Search the NØPE mock fashion catalogue using budget, category, occasion, style and negative preferences.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        category: { type: "string", description: "Product category such as shirt" },
+        max_price: { type: "number", description: "Maximum price in INR" },
+        occasion: { type: "string", description: "Occasion such as wedding" },
+        style: { type: "string", description: "Desired style such as classy, relaxed, smart-casual" },
+        avoid: { type: "string", description: "Things to avoid such as shiny or formal" }
+      },
+      required: ["category"]
+    }
   }
 ];
 
@@ -113,6 +128,41 @@ export default async function (req, res) {
           message: "Order created successfully"
         }) }],
         isError: false
+      }));
+    }
+
+    if (name === "search_products") {
+      const catalogue = [
+        { product_id:"SHIRT-001", name:"Linen Blend Resort Shirt", price:2499, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual", tags:["matte","breathable","relaxed"] },
+        { product_id:"SHIRT-002", name:"Satin Formal Evening Shirt", price:2899, category:"shirt", occasion:"wedding", style:"formal classy", tags:["shiny","slim","formal"] },
+        { product_id:"SHIRT-003", name:"Textured Oxford Casual Shirt", price:2299, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual", tags:["matte","textured","relaxed"] },
+        { product_id:"SHIRT-004", name:"Premium Slim Tux Shirt", price:2999, category:"shirt", occasion:"wedding", style:"formal sharp", tags:["formal","slim","structured"] },
+        { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, category:"shirt", occasion:"wedding", style:"relaxed stylish smart-casual", tags:["matte","relaxed","stylish"] },
+        { product_id:"SHIRT-006", name:"Silk Finish Party Shirt", price:2699, category:"shirt", occasion:"party wedding", style:"stylish bold", tags:["shiny","party"] },
+        { product_id:"SHIRT-007", name:"Relaxed Linen Shirt", price:2399, category:"shirt", occasion:"wedding travel", style:"relaxed classy", tags:["matte","linen","relaxed"] },
+        { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] }
+      ];
+      const category = String(args.category || "").toLowerCase();
+      const maxPrice = Number(args.max_price || Infinity);
+      const occasion = String(args.occasion || "").toLowerCase();
+      const style = String(args.style || "").toLowerCase();
+      const avoid = String(args.avoid || "").toLowerCase();
+      const avoidWords = avoid.split(/[,\\s]+/).filter(Boolean);
+      const results = catalogue.filter(p => {
+        if (p.category !== category) return false;
+        if (p.price > maxPrice) return false;
+        if (occasion && !p.occasion.includes(occasion) && !p.occasion.includes("wedding")) return false;
+        if (style && !style.split(/[,\\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
+        if (avoidWords.some(w => p.tags.some(t => t.includes(w)))) return false;
+        return true;
+      }).slice(0,4);
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({
+          results,
+          count: results.length,
+          message: results.length ? "Products matched the supplied constraints." : "No products matched all supplied constraints."
+        }) }],
+        isError:false
       }));
     }
 
