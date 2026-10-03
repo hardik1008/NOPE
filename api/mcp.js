@@ -147,7 +147,7 @@ export default async function (req, res) {
       const occasion = String(args.occasion || "").toLowerCase();
       const style = String(args.style || "").toLowerCase();
       const avoid = String(args.avoid || "").toLowerCase();
-      const avoidWords = avoid.split(/[,\\s]+/).filter(Boolean);
+      const avoidWords = avoid.split(/[,\s]+/).filter(Boolean);
       const results = catalogue.filter(p => {
         if (p.category !== category) return false;
         if (p.price > maxPrice) return false;
