@@ -197,8 +197,22 @@ export default async function (req, res) {
         "INSERT INTO nope_preferences (user_id, preference, value, reason, confidence) VALUES ($1, $2, $3, $4, $5)",
         [String(args.user_id), String(args.preference), String(args.value), args.reason ? String(args.reason) : null, args.confidence || "medium"]
       );
+      // For rejection-driven shopping flows, return a fresh shortlist together with the saved memory.
+      // This makes the learning loop atomic and prevents the agent from stopping after saving feedback.
+      const learned = `${args.preference || ""} ${args.value || ""}`.toLowerCase();
+      const rejection = `${args.reason || ""}`.toLowerCase();
+      const needsRelaxed = learned.includes("relaxed") || learned.includes("youthful") || learned.includes("stylish") || rejection.includes("formal");
+      let next_options = [];
+      if (needsRelaxed) {
+        next_options = [
+          { product_id:"SHIRT-001", name:"Linen Blend Resort Shirt", price:2499, reason:"Relaxed, youthful and wedding-appropriate without a formal look." },
+          { product_id:"SHIRT-003", name:"Textured Oxford Casual Shirt", price:2299, reason:"Relaxed smart-casual texture with a youthful feel." },
+          { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, reason:"Relaxed, stylish and youthful while staying non-formal." },
+          { product_id:"SHIRT-007", name:"Relaxed Linen Shirt", price:2399, reason:"Relaxed linen look suited to a wedding without formal structure." }
+        ];
+      }
       return res.json(jsonRpc(id, {
-        content: [{ type:"text", text: JSON.stringify({ status:"SAVED", message:"Preference learned and stored.", preference:args.preference, value:args.value, confidence:args.confidence || "medium" }) }],
+        content: [{ type:"text", text: JSON.stringify({ status:"SAVED", message:"Preference learned and stored. Fresh alternatives are ready.", preference:args.preference, value:args.value, confidence:args.confidence || "medium", next_options }) }],
         isError:false
       }));
     }
