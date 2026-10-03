@@ -212,14 +212,27 @@ export default async function (req, res) {
       const raw = String(args.audio_base64 || "");
       if (!raw) return res.json(errorRpc(id, -32602, "audio_base64 is required"));
       const bytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
-      const form = new FormData();
-      form.append("audio_file", new Blob([bytes], {type:"audio/wav"}), "audio.wav");
-      form.append("language_code", String(args.language_code || "hi-IN"));
-      form.append("format", String(args.format || "wav"));
+      const boundary = "----NOPEGnani" + crypto.randomUUID().replace(/-/g, "");
+      const enc = new TextEncoder();
+      const part = (name, value) =>
+        enc.encode("--" + boundary + "\r\n" +
+          "Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" +
+          value + "\r\n");
+      const fileHead = enc.encode("--" + boundary + "\r\n" +
+        "Content-Disposition: form-data; name=\"audio_file\"; filename=\"audio.wav\"\r\n" +
+        "Content-Type: audio/wav\r\n\r\n");
+      const fileTail = enc.encode("\r\n--" + boundary + "--\r\n");
+      const languagePart = part("language_code", String(args.language_code || "hi-IN"));
+      const formatPart = part("format", String(args.format || "wav"));
+      const body = new Uint8Array(languagePart.length + formatPart.length + fileHead.length + bytes.length + fileTail.length);
+      let pos = 0;
+      for (const chunk of [languagePart, formatPart, fileHead, bytes, fileTail]) {
+        body.set(chunk, pos); pos += chunk.length;
+      }
       const upstream = await fetch("https://api.vachana.ai/stt/v3", {
         method:"POST",
-        headers:{"X-API-Key-ID":key},
-        body:form
+        headers:{"X-API-Key-ID":key, "Content-Type":"multipart/form-data; boundary=" + boundary},
+        body
       });
       const rawText = await upstream.text();
       let data;
