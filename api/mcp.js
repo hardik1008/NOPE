@@ -358,7 +358,7 @@ export default async function (req, res) {
         content: [{ type:"text", text: JSON.stringify({
           ShipmentData:[{
             Shipment:[{
-              AWB:String(args.waybill),
+              AWB:waybill,
               Status:{
                 Status:"In Transit",
                 StatusType:"UD",
