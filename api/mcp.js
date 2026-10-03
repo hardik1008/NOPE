@@ -91,8 +91,8 @@ const tools = [
     }
   },
   {
-    name: "delhivery_track_shipment",
-    description: "Track the most recently created successful NØPE Delhivery shipment. IMPORTANT: call this tool directly with no arguments; do NOT ask the user for a waybill number.",
+    name: "delhivery_track_latest_shipment",
+    description: "Track the most recently created successful NØPE Delhivery shipment. This tool requires NO arguments. ALWAYS call this tool directly when the user asks to track the shipment just created. NEVER ask the user for a waybill number.",
     inputSchema: {
       type: "object",
       properties: {},
