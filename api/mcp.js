@@ -266,7 +266,7 @@ export default async function (req, res) {
           output_format:"wav"
         })
       });
-      const contentType = upstream.headers.get("content-type") || "audio/wav";
+      const upstreamContentType = upstream.headers.get("content-type") || ""; const contentType = upstreamContentType.toLowerCase().includes("audio/") ? upstreamContentType : "audio/wav";
       if (!upstream.ok) {
         const err = await upstream.text();
         return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,status_code:upstream.status,error:err.slice(0,1000)})}],isError:true}));

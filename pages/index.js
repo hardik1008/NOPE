@@ -47,7 +47,7 @@ async function runNopeVoice(){
   setStatus("NØPE found the options. Speaking…","ok");
   const t=await gnani("gnani_text_to_speech",{text:reply,language:"hi-en",voice:"Poorvi",speed:1});
   if(!t.success) throw Error(t.error||"TTS failed");
-  audio.src=t.audio_url;audio.hidden=false;await audio.play();
+  const audioResp=await fetch(t.audio_url); if(!audioResp.ok) throw Error("NØPE audio download failed: "+audioResp.status); const audioBlob=await audioResp.blob(); if(!audioBlob.type.startsWith("audio/")) throw Error("NØPE returned a non-audio file"); if(audio._objectUrl) URL.revokeObjectURL(audio._objectUrl); audio._objectUrl=URL.createObjectURL(audioBlob); audio.src=audio._objectUrl; audio.load(); audio.hidden=false; await new Promise((resolve,reject)=>{audio.oncanplay=resolve;audio.onerror=()=>reject(Error("NØPE audio could not be decoded by the browser"));}); await audio.play();
   hint.textContent="NØPE replied — click 🎙️ to speak again";
   setStatus("✓ Full voice loop complete","ok");
 }
