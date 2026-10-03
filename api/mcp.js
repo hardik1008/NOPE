@@ -24,7 +24,7 @@ const tools = [
       properties: {
         text: { type: "string" },
         language: { type: "string", default: "hi-en" },
-        voice: { type: "string", default: "Poorvi" },
+        voice: { type: "string", default: "Yashvi" },
         speed: { type: "number", default: 1 }
       },
       required: ["text"]
@@ -260,7 +260,7 @@ export default async function (req, res) {
         body:JSON.stringify({
           model:"timbre-v2.5",
           text:textValue,
-          voice:String(args.voice || "Nalini"),
+          voice:String(args.voice || "Yashvi"),
           language:String(args.language || "hi-IN"),
           speed:Number(args.speed || 1),
           sample_rate:16000,

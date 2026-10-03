@@ -59,9 +59,9 @@ async function runNopeVoice(){
  if(products.length){const rr=await mcp("rank_products",{products,preferences:prefs.preferences||[],intent:transcript});ranked=rr.results||products}
  if(ranked.length)renderShopMatches(ranked);
  const picks=ranked.slice(0,3);
- const reply=picks.length?"Yay! Maine aapke liye "+picks.length+" lovely options choose kiye hain. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Ye aapki current style aur budget ke saath achchhe se match karte hain. Agar kuch pasand na aaye, bas mujhe bata dena — main softly adjust karke aur options dhoondhungi.":"Hmm, abhi exact match nahi mila. Koi baat nahi — aap budget ya style mein jo change karna chahte hain, bas bata dijiye. Main phir se pyaar se search karungi.";
+ const reply=picks.length?"Yay... aapke liye kuch really lovely options mil gaye hain. Mainne "+picks.length+" options shortlist kiye hain. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Inmein se pehla option mujhe especially aapki current style, occasion aur budget ke liye achchha lag raha hai. Aap aaraam se dekhiye. Aur agar koi option bilkul aapke type ka na lage, mujhe bas bata dena ki kya pasand nahi aaya. Main us feedback ko samajh kar next options aur better kar dungi.":"Hmm... abhi mujhe aapke liye exact match nahi mila. But no worries at all. Aap bas mujhe bata dijiye ki budget ya style mein kya change karna hai... main calmly dobara search karke aapke liye better options dhoondhungi.";
  transcriptEl.textContent=transcript;stage("Generating NØPE voice response","Sending the final decision to Gnani TTS.","nTts");
- const t=await mcp("gnani_text_to_speech",{text:reply,language:"hi-en",voice:"Nalini",speed:1.05});
+ const t=await mcp("gnani_text_to_speech",{text:reply,language:"hi-en",voice:"Yashvi",speed:0.92});
  if(!t.success)throw Error(t.error||"TTS failed");
  const bin=atob(t.audio_base64||""),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
  if(audio._objectUrl)URL.revokeObjectURL(audio._objectUrl);audio._objectUrl=URL.createObjectURL(new Blob([arr],{type:t.audio_content_type||"audio/wav"}));audio.src=audio._objectUrl;audio.hidden=false;audio.load();
@@ -103,7 +103,7 @@ document.querySelectorAll(".chip[data-cat]").forEach(c=>c.onclick=()=>{document.
 $("surprise").onclick=()=>processTranscript("Find me a classy relaxed shirt under ₹3000");
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
-$("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:"hi-IN",voice:"Nalini",speed:1.05});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
+$("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:"hi-IN",voice:"Yashvi",speed:0.92});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
 $("cartBtn").onclick=async()=>{
  if(!cart.length)return setStatus("Your bag is empty. Ask NØPE to find something for you.","ok");
  const p=cart[0];if(!window.confirm("Proceed with a TEST purchase of "+p.name+" for ₹"+p.price+"? No real money will be charged."))return;
