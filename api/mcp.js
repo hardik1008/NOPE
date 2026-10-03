@@ -178,7 +178,7 @@ export default async function (req, res) {
         if (p.category !== category) return false;
         if (p.price > maxPrice) return false;
         if (occasion && !p.occasion.includes(occasion) && !p.occasion.includes("wedding")) return false;
-        if (style && !style.split(/[,\\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
+        if (style && !style.split(/[,\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
         if (avoidWords.some(w => p.tags.some(t => t.includes(w)))) return false;
         return true;
       }).slice(0,4);
