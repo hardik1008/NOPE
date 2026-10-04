@@ -63,7 +63,12 @@ const tools = [
         max_price: { type: ["number", "null"], description: "Maximum price in INR. Use null when the user did not specify a budget." },
         occasion: { type: ["string", "null"], description: "Occasion such as wedding; use null when not specified." },
         style: { type: ["string", "null"], description: "Desired style such as classy, relaxed, smart-casual; use null when not specified." },
-        avoid: { type: ["string", "null"], description: "Things to avoid such as shiny or formal; use null when not specified." }
+        avoid: { type: ["string", "null"], description: "Things to avoid such as shiny or formal; use null when not specified." },
+        fit: { type: ["string", "null"] },
+        material: { type: ["string", "null"] },
+        color: { type: ["string", "null"] },
+        formality: { type: ["string", "null"] },
+        finish: { type: ["string", "null"] }
       },
       required: ["category"]
     }
@@ -387,28 +392,687 @@ export default async function (req, res) {
 
     if (name === "search_products") {
       const catalogue = [
-        { product_id:"SHIRT-001", name:"Linen Blend Resort Shirt", price:2499, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual youthful", tags:["matte","breathable","relaxed","youthful"] },
-        { product_id:"SHIRT-002", name:"Satin Formal Evening Shirt", price:2899, category:"shirt", occasion:"wedding", style:"formal classy", tags:["shiny","slim","formal"] },
-        { product_id:"SHIRT-003", name:"Textured Oxford Casual Shirt", price:2299, category:"shirt", occasion:"wedding", style:"classy relaxed smart-casual youthful", tags:["matte","textured","relaxed","youthful"] },
-        { product_id:"SHIRT-004", name:"Premium Slim Tux Shirt", price:2999, category:"shirt", occasion:"wedding", style:"formal sharp", tags:["formal","slim","structured"] },
-        { product_id:"SHIRT-005", name:"Cotton Cuban Collar Shirt", price:1999, category:"shirt", occasion:"wedding", style:"relaxed stylish smart-casual youthful", tags:["matte","relaxed","stylish","youthful"] },
-        { product_id:"SHIRT-006", name:"Silk Finish Party Shirt", price:2699, category:"shirt", occasion:"party wedding", style:"stylish bold", tags:["shiny","party"] },
-        { product_id:"SHIRT-007", name:"Relaxed Linen Shirt", price:2399, category:"shirt", occasion:"wedding travel", style:"relaxed classy", tags:["matte","linen","relaxed"] },
-        { product_id:"SHIRT-008", name:"Structured Premium Dress Shirt", price:2599, category:"shirt", occasion:"wedding", style:"formal classy", tags:["formal","structured"] },
-        { product_id:"SHIRT-009", name:"Camp Collar Resort Shirt", price:1899, category:"shirt", occasion:"wedding", style:"relaxed stylish youthful", tags:["matte","printed","relaxed","youthful"] }
-      ];
+  {
+    "product_id": "SHIRT-001",
+    "name": "Linen Resort Shirt",
+    "price": 1299,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "linen",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-002",
+    "name": "Textured Oxford Shirt",
+    "price": 1472,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-003",
+    "name": "Cotton Cuban Collar Shirt",
+    "price": 1645,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-004",
+    "name": "Relaxed Linen Shirt",
+    "price": 1818,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-005",
+    "name": "Camp Collar Resort Shirt",
+    "price": 1991,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "linen",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-006",
+    "name": "Matte Poplin Shirt",
+    "price": 2164,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-007",
+    "name": "Soft Twill Casual Shirt",
+    "price": 2337,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "cotton",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-008",
+    "name": "Minimal Oxford Shirt",
+    "price": 2510,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-009",
+    "name": "Relaxed Chambray Shirt",
+    "price": 2683,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "linen",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-010",
+    "name": "Printed Resort Shirt",
+    "price": 2856,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-011",
+    "name": "Classic Cotton Shirt",
+    "price": 3029,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-012",
+    "name": "Weekend Linen Shirt",
+    "price": 3202,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-013",
+    "name": "Textured Cotton Shirt",
+    "price": 3375,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "linen",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-014",
+    "name": "Premium Casual Shirt",
+    "price": 3548,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-015",
+    "name": "Relaxed Stripe Shirt",
+    "price": 3721,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-016",
+    "name": "Smart Casual Poplin",
+    "price": 3894,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-017",
+    "name": "Modern Cuban Shirt",
+    "price": 4067,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "linen",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-018",
+    "name": "Breathable Linen Shirt",
+    "price": 4240,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-019",
+    "name": "Youthful Print Shirt",
+    "price": 4413,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "matte",
+      "cotton",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "SHIRT-020",
+    "name": "Minimal Linen Shirt",
+    "price": 4586,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "matte",
+      "cotton",
+      "relaxed"
+    ]
+  },
+  {
+    "product_id": "SHIRT-021",
+    "name": "Slim Formal White Shirt",
+    "price": 4759,
+    "category": "shirt",
+    "occasion": "wedding office",
+    "style": "formal classy",
+    "tags": [
+      "formal",
+      "structured",
+      "slim"
+    ]
+  },
+  {
+    "product_id": "SHIRT-022",
+    "name": "Structured Office Shirt",
+    "price": 4932,
+    "category": "shirt",
+    "occasion": "wedding office",
+    "style": "formal classy",
+    "tags": [
+      "formal",
+      "structured",
+      "slim"
+    ]
+  },
+  {
+    "product_id": "SHIRT-023",
+    "name": "Classic Formal Blue Shirt",
+    "price": 1404,
+    "category": "shirt",
+    "occasion": "wedding office",
+    "style": "formal classy",
+    "tags": [
+      "formal",
+      "structured",
+      "slim"
+    ]
+  },
+  {
+    "product_id": "SHIRT-024",
+    "name": "Tux Evening Shirt",
+    "price": 1577,
+    "category": "shirt",
+    "occasion": "wedding office",
+    "style": "formal classy",
+    "tags": [
+      "formal",
+      "structured",
+      "slim"
+    ]
+  },
+  {
+    "product_id": "SHIRT-025",
+    "name": "Satin Party Shirt",
+    "price": 1750,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed youthful",
+    "tags": [
+      "shiny",
+      "party"
+    ]
+  },
+  {
+    "product_id": "SHIRT-026",
+    "name": "Silk Finish Party Shirt",
+    "price": 1923,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "relaxed stylish smart-casual",
+    "tags": [
+      "shiny",
+      "party"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-001",
+    "name": "Essential Crew T-Shirt",
+    "price": 1386,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-002",
+    "name": "Oversized Heavyweight Tee",
+    "price": 1873,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-003",
+    "name": "Relaxed Graphic Tee",
+    "price": 2360,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-004",
+    "name": "Minimal Premium Tee",
+    "price": 2847,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-005",
+    "name": "Polo T-Shirt",
+    "price": 3334,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-006",
+    "name": "Youthful Print Tee",
+    "price": 3821,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-007",
+    "name": "Cotton Oversized Tee",
+    "price": 4308,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-008",
+    "name": "Smart Polo",
+    "price": 4795,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-009",
+    "name": "Travel Relaxed Tee",
+    "price": 5282,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TSHIRT-010",
+    "name": "Weekend Basic Tee",
+    "price": 5769,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-011",
+    "name": "Slim Formal Trousers",
+    "price": 6256,
+    "category": "trouser",
+    "occasion": "wedding office",
+    "style": "formal elegant",
+    "tags": [
+      "formal",
+      "structured"
+    ]
+  },
+  {
+    "product_id": "TROUSER-012",
+    "name": "Classic Chinos",
+    "price": 6743,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-013",
+    "name": "Relaxed Chinos",
+    "price": 7230,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-014",
+    "name": "Linen Trousers",
+    "price": 7717,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-015",
+    "name": "Smart Casual Trousers",
+    "price": 1103,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-016",
+    "name": "Pleated Trousers",
+    "price": 1590,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-017",
+    "name": "Travel Trousers",
+    "price": 2077,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "TROUSER-018",
+    "name": "Cotton Trousers",
+    "price": 2564,
+    "category": "trouser",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "JACKET-019",
+    "name": "Classic Blazer",
+    "price": 3051,
+    "category": "jacket",
+    "occasion": "wedding office",
+    "style": "formal elegant",
+    "tags": [
+      "formal",
+      "structured"
+    ]
+  },
+  {
+    "product_id": "JACKET-020",
+    "name": "Linen Overshirt",
+    "price": 3538,
+    "category": "jacket",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "JACKET-021",
+    "name": "Lightweight Bomber",
+    "price": 4025,
+    "category": "jacket",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "JACKET-022",
+    "name": "Smart Casual Jacket",
+    "price": 4512,
+    "category": "jacket",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "ETHNIC-023",
+    "name": "Festive Kurta",
+    "price": 4999,
+    "category": "ethnic",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  },
+  {
+    "product_id": "ETHNIC-024",
+    "name": "Nehru Jacket",
+    "price": 5486,
+    "category": "ethnic",
+    "occasion": "wedding office",
+    "style": "formal elegant",
+    "tags": [
+      "formal",
+      "structured"
+    ]
+  },
+  {
+    "product_id": "ETHNIC-025",
+    "name": "Wedding Festive Shirt",
+    "price": 5973,
+    "category": "ethnic",
+    "occasion": "casual travel festive",
+    "style": "relaxed stylish youthful",
+    "tags": [
+      "matte",
+      "relaxed",
+      "youthful"
+    ]
+  }
+];
       const category = String(args.category || "").toLowerCase();
       const maxPrice = args.max_price == null || args.max_price === "" ? Infinity : Number(args.max_price);
       const occasion = String(args.occasion || "").toLowerCase();
+      const fit = String(args.fit || "").toLowerCase();
+      const material = String(args.material || "").toLowerCase();
+      const color = String(args.color || "").toLowerCase();
+      const formality = String(args.formality || "").toLowerCase();
+      const finish = String(args.finish || "").toLowerCase();
       const style = String(args.style || "").toLowerCase();
       const avoid = String(args.avoid || "").toLowerCase();
       const avoidWords = avoid.split(/[,\s]+/).filter(Boolean);
       const results = catalogue.filter(p => {
         if (category && category !== "all" && category !== "clothing" && p.category !== category) return false;
         if (p.price > maxPrice) return false;
-        if (occasion && !p.occasion.includes(occasion) && !p.occasion.includes("wedding")) return false;
-        if (style && !style.split(/[,\s]+/).filter(Boolean).some(w => p.style.includes(w))) return false;
-        if (avoidWords.some(w => p.tags.some(t => t.includes(w)))) return false;
+        if (occasion && !p.occasion.includes(occasion)) return false;
+        if (style && !style.split(/[,\s]+/).filter(Boolean).some(w => p.style.includes(w) || p.tags.some(t => t.includes(w)))) return false;
+        if (fit && !JSON.stringify(p).toLowerCase().includes(fit)) return false;
+        if (material && !JSON.stringify(p).toLowerCase().includes(material)) return false;
+        if (color && !JSON.stringify(p).toLowerCase().includes(color)) return false;
+        if (formality && !JSON.stringify(p).toLowerCase().includes(formality)) return false;
+        if (finish && !JSON.stringify(p).toLowerCase().includes(finish)) return false;
+        if (avoidWords.some(w => p.tags.some(t => t.includes(w)) || String(p.style).toLowerCase().includes(w))) return false;
         return true;
       }).slice(0,8);
       return res.json(jsonRpc(id, {
