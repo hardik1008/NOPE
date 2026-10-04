@@ -248,6 +248,7 @@ function installRecommendationActions(items){
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
       proofStep("db","Rejection stored in Postgres · "+inferred.preference+" = "+inferred.value);
+      await refreshSessionView();
       showLearnedMemory(inferred.value,inferred.reason);
       learnTaste(p,-1.8,"skip");
       stage("Memory updated","NØPE is testing a different direction.","nCatalog");
