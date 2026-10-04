@@ -373,12 +373,33 @@ export default async function (req, res) {
     if (name === "rank_products") {
       const products = Array.isArray(args.products) ? args.products : [];
       const prefs = Array.isArray(args.preferences) ? args.preferences : [];
-      const textBlob = JSON.stringify(prefs).toLowerCase() + " " + String(args.intent || "").toLowerCase();
+      const intentText = String(args.intent || "").toLowerCase();
+      const prefText = JSON.stringify(prefs).toLowerCase();
+      const weight = p => p.confidence === "high" ? 1.5 : p.confidence === "medium" ? 1 : 0.5;
+      const distinctProductsFor = (preference, valuePattern) => {
+        const matching = prefs.filter(p => String(p.preference||"").toLowerCase() === preference && valuePattern.test(String(p.value||"").toLowerCase()));
+        const ids = new Set();
+        matching.forEach(p => {
+          const m = String(p.reason||"").match(/product_id=([^\\s—]+)/i);
+          if(m) ids.add(m[1]);
+        });
+        return {rows:matching, products:ids, score:matching.reduce((s,p)=>s+weight(p),0)};
+      };
+      const formalEvidence = distinctProductsFor("formality", /avoid/);
+      const shinyEvidence = distinctProductsFor("finish", /avoid/);
+      const expressionEvidence = distinctProductsFor("expression", /avoid|loud/);
+      const threshold = 3;
+      const explicitFormal = /(?:nothing|not|no|avoid|don't|dont).{0,22}(formal|structured|office|uncle)/.test(intentText);
+      const explicitShiny = /(?:nothing|not|no|avoid|don't|dont).{0,22}(shiny|satin|gloss|silk)/.test(intentText);
+      const explicitLoud = /(?:nothing|not|no|avoid|don't|dont).{0,22}(loud|neon|floral|bold|flashy)/.test(intentText);
+      const enoughFormal = explicitFormal || (formalEvidence.score >= threshold && formalEvidence.products.size >= threshold);
+      const enoughShiny = explicitShiny || (shinyEvidence.score >= threshold && shinyEvidence.products.size >= threshold);
+      const enoughExpression = explicitLoud || (expressionEvidence.score >= threshold && expressionEvidence.products.size >= threshold);
       const filtered = products.filter(p => {
         const hay = JSON.stringify(p).toLowerCase();
-        if (/(avoid overly formal|avoid formal|not formal)/.test(textBlob) && /formal|structured|executive|slim/.test(hay)) return false;
-        if (/(avoid shiny|avoid .*party|avoid .*gloss)/.test(textBlob) && /shiny|satin|gloss|party/.test(hay)) return false;
-        if (/avoid loud|avoid .*expressive/.test(textBlob) && /loud|floral|neon|bold|check|graphic/.test(hay)) return false;
+        if (enoughFormal && /formal|structured|executive|slim|fitted/.test(hay)) return false;
+        if (enoughShiny && /shiny|satin|gloss|party/.test(hay)) return false;
+        if (enoughExpression && /loud|floral|neon|bold|check|graphic/.test(hay)) return false;
         return true;
       });
       const pool = filtered.length ? filtered : products;
@@ -386,15 +407,19 @@ export default async function (req, res) {
         let score = 50;
         const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
         const hay = JSON.stringify(p).toLowerCase();
-        if (textBlob.includes("relaxed") && (tags.includes("relaxed") || hay.includes("relaxed"))) score += 15;
-        if (textBlob.includes("classy") && (tags.includes("classy") || hay.includes("classy"))) score += 10;
-        if (textBlob.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
-        if (textBlob.includes("formal") && (tags.includes("formal") || hay.includes("formal"))) score -= 25;
-        if (textBlob.includes("shiny") && (tags.includes("shiny") || hay.includes("shiny"))) score -= 30;
-        if (textBlob.includes("avoid loud") && /loud|floral|neon|bold|check/.test(hay)) score -= 25;
+        if (intentText.includes("relaxed") && (tags.includes("relaxed") || hay.includes("relaxed"))) score += 15;
+        if (intentText.includes("classy") && (tags.includes("classy") || hay.includes("classy"))) score += 10;
+        if (intentText.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
+        if (intentText.includes("formal") && (tags.includes("formal") || hay.includes("formal"))) score -= 25;
+        if (intentText.includes("shiny") && (tags.includes("shiny") || hay.includes("shiny"))) score -= 30;
+        if (intentText.includes("avoid loud") && /loud|floral|neon|bold|check/.test(hay)) score -= 25;
+        // Before the evidence threshold, NØPE does not hide the product family. It only learns and softly down-ranks it.
+        if (formalEvidence.score > 0 && !enoughFormal && /formal|structured|executive|slim|fitted/.test(hay)) score -= Math.min(18, 5 + formalEvidence.score * 3);
+        if (shinyEvidence.score > 0 && !enoughShiny && /shiny|satin|gloss|party/.test(hay)) score -= Math.min(18, 5 + shinyEvidence.score * 3);
+        if (expressionEvidence.score > 0 && !enoughExpression && /loud|floral|neon|bold|check|graphic/.test(hay)) score -= Math.min(18, 5 + expressionEvidence.score * 3);
         return {...p, fit_score: Math.max(0, Math.min(100, score))};
-      }).sort((a,b)=>b.fit_score-a.fit_score).slice(0,4);
-      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked})}],isError:false}));
+      }).sort((a,b)=>b.fit_score-a.fit_score).slice(0,8);
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked,learning:{threshold,formality:{score:formalEvidence.score,distinct_products:formalEvidence.products.size,confirmed:enoughFormal},finish:{score:shinyEvidence.score,distinct_products:shinyEvidence.products.size,confirmed:enoughShiny},expression:{score:expressionEvidence.score,distinct_products:expressionEvidence.products.size,confirmed:enoughExpression}}})}],isError:false}));
     }
 
     if (name === "confirm_purchase") {
