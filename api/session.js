@@ -25,10 +25,6 @@ export default async function(req,res){
     "SELECT event_type,payload,created_at FROM nope_events WHERE user_id=$1 ORDER BY created_at DESC LIMIT 40",
     [userId]
   );
-  const totals=await db.query(
-    "SELECT (SELECT count(*) FROM nope_sessions WHERE user_id=$1) AS total_sessions, (SELECT count(*) FROM nope_preferences WHERE user_id=$1) AS total_preferences, (SELECT count(*) FROM nope_events WHERE user_id=$1) AS total_events",
-    [userId]
-  );
 
   return res.json({
     session_id:sessionId,
@@ -36,9 +32,6 @@ export default async function(req,res){
     session_preferences:sessionPrefs.rows,
     profile_preferences:profilePrefs.rows,
     events:events.rows,
-    preference_count:sessionPrefs.rows.length,
-    total_sessions:Number(totals.rows[0]?.total_sessions||0),
-    total_preferences:Number(totals.rows[0]?.total_preferences||0),
-    total_events:Number(totals.rows[0]?.total_events||0)
+    preference_count:sessionPrefs.rows.length
   });
 }

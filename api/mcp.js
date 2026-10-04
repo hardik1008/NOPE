@@ -386,43 +386,6 @@ export default async function (req, res) {
         return v >= o && v > 0 ? "v" : o > 0 ? "o" : null;
       })();
 
-      // Positive affinity: products the shopper explicitly liked (bag/favourite/purchase)
-      // should influence the next shortlist toward catalogue items with similar attributes.
-      const affinityRows = prefs.filter(p => {
-        const sig = String(p.signal_type||"").toLowerCase();
-        const pref = String(p.preference||"").toLowerCase();
-        return ["add_to_bag","save","purchase"].includes(sig) || pref === "product affinity" || pref === "save affinity" || pref === "purchase affinity";
-      });
-      const likedProductIds = new Set();
-      const likedProductNames = new Set();
-      affinityRows.forEach(p => {
-        const idMatch = String(p.reason||"").match(/product_id=([^\s—]+)/i);
-        if(idMatch) likedProductIds.add(idMatch[1]);
-        const value = String(p.value||"").trim().toLowerCase();
-        if(value) likedProductNames.add(value);
-      });
-      const productTraits = p => {
-        const raw = JSON.stringify(p||{}).toLowerCase();
-        const traits = [];
-        if(/v-neck|v neck/.test(raw)) traits.push("v-neck");
-        if(/o-neck|o neck|round-neck|round neck|crew-neck/.test(raw)) traits.push("o-neck");
-        if(/t-shirt|tee/.test(raw)) traits.push("t-shirt");
-        if(/(?:^|[" ])shirt(?:[" ,]|$)/.test(raw) && !/t-shirt|tee/.test(raw)) traits.push("shirt");
-        if(/linen/.test(raw)) traits.push("linen");
-        if(/cotton|oxford/.test(raw)) traits.push("cotton");
-        if(/relaxed|oversized|easy|airy|resort|cuban|camp/.test(raw)) traits.push("relaxed");
-        if(/minimal|clean|understated|plain|solid/.test(raw)) traits.push("minimal");
-        if(/navy|black|white|ivory|beige|sand|sage|olive|charcoal|rust|blue/.test(raw)) traits.push("muted");
-        return [...new Set(traits)];
-      };
-      const likedCatalogueProducts = affinityRows.map(pref => {
-        const idMatch = String(pref.reason||"").match(/product_id=([^\s—]+)/i);
-        const id = idMatch ? idMatch[1] : "";
-        const value = String(pref.value||"").trim().toLowerCase();
-        return products.find(p => String(p.product_id||p.id||"")===id) || products.find(p => String(p.name||"").toLowerCase()===value) || null;
-      }).filter(Boolean);
-      const likedTraitSet = new Set(likedCatalogueProducts.flatMap(productTraits));
-
       const pricePivotEvidence = {v:new Set(),o:new Set()};
       prefs.filter(p=>String(p.preference||"").toLowerCase()==="price").forEach(p=>{
         const raw=(String(p.value||"")+" "+String(p.reason||"")).toLowerCase();
@@ -458,12 +421,6 @@ export default async function (req, res) {
         if (neckPreference==="o" && /o-neck|o neck|round-neck|round neck/.test(hay)) score += 28;
         if (pivotNeck && String(p.neck||"").toLowerCase()===pivotNeck && String(p.garment||"").toLowerCase()==="t-shirt") score += 40;
         if (pivotNeck && String(p.garment||"").toLowerCase()==="shirt") score -= 45;
-        // Explicit positive affinity acts as a "more like this" signal.
-        const candidateTraits = productTraits(p);
-        const sharedTraits = candidateTraits.filter(t=>likedTraitSet.has(t)).length;
-        if(sharedTraits) score += Math.min(32, sharedTraits * 9);
-        if(likedProductIds.has(String(p.product_id||p.id||""))) score -= 20;
-        if(likedProductNames.has(String(p.name||"").toLowerCase())) score -= 20;
         if (intentText.includes("relaxed") && (tags.includes("relaxed") || hay.includes("relaxed"))) score += 15;
         if (intentText.includes("classy") && (tags.includes("classy") || hay.includes("classy"))) score += 10;
         if (intentText.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
