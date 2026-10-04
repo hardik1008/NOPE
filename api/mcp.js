@@ -345,6 +345,20 @@ export default async function (req, res) {
       const intentText = String(args.intent || "").toLowerCase();
       const prefText = JSON.stringify(prefs).toLowerCase();
       const weight = p => p.confidence === "high" ? 1.5 : p.confidence === "medium" ? 1 : 0.5;
+      // Exact product rejection is a hard session exclusion. A rejected shirt/T-shirt must not return later,
+      // even when NØPE is still learning whether the broader family should remain visible.
+      const rejectedProductIds = new Set();
+      prefs.forEach(p => {
+        const signal = String(p.signal_type || "").toLowerCase();
+        const textValue = String(p.value || "") + " " + String(p.reason || "");
+        if (signal === "rejection" || signal === "rejection_feedback" || /too expensive|user rejected|not right|avoid this product/i.test(textValue)) {
+          const matches = String(p.reason || "").match(/product_id=([^\s—]+)/ig) || [];
+          matches.forEach(m => {
+            const id = m.replace(/^product_id=/i, "").trim();
+            if(id) rejectedProductIds.add(id);
+          });
+        }
+      });
       const distinctProductsFor = (preference, valuePattern) => {
         const matching = prefs.filter(p => String(p.preference||"").toLowerCase() === preference && valuePattern.test(String(p.value||"").toLowerCase()));
         const ids = new Set();
@@ -390,13 +404,15 @@ export default async function (req, res) {
       const enoughExpression = explicitLoud || (expressionEvidence.score >= threshold && expressionEvidence.products.size >= threshold);
       const filtered = products.filter(p => {
         const hay = JSON.stringify(p).toLowerCase();
+        const productId = String(p.product_id || p.id || "");
+        if (rejectedProductIds.has(productId)) return false;
         if (pivotNeck && (String(p.neck||"").toLowerCase() !== pivotNeck || String(p.garment||"").toLowerCase() !== "t-shirt")) return false;
         if (enoughFormal && /formal|structured|executive|slim|fitted/.test(hay)) return false;
         if (enoughShiny && /shiny|satin|gloss|party/.test(hay)) return false;
         if (enoughExpression && /loud|floral|neon|bold|check|graphic/.test(hay)) return false;
         return true;
       });
-      const pool = filtered.length ? filtered : products;
+      const pool = filtered;
       const ranked = pool.map(p => {
         let score = 50;
         const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
