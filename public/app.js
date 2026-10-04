@@ -84,8 +84,9 @@ async function refreshSessionView(){
     const r=await fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId(),user_id:"demo-user"})});
     const d=await r.json();
     const root=document.getElementById("sessionMemory"); if(!root)return;
-    const prefs=d.preferences||[];
-    if(!prefs.length){root.innerHTML='<div class="emptyMemory">No preference signals yet. NØPE will learn from what you say and what you choose.</div>';return}
+    const prefs=d.session_preferences||[];
+    const profile=d.profile_preferences||[];
+    if(!prefs.length&&!profile.length){root.innerHTML='<div class="emptyMemory">No preference signals yet. NØPE will learn from what you say and what you choose.</div>';return}
     const groups={hard:[],like:[],avoid:[],signals:[]};
     prefs.slice(0,12).forEach(p=>{
       const text=(p.preference+" "+p.value+" "+(p.reason||"")).toLowerCase();
@@ -216,7 +217,7 @@ async function runNopeVoice(){
  const avoid=[/shiny|chamak|silk/.test(q)?"shiny":null,/formal|uncle/.test(q)?"formal":null].filter(Boolean).join(",");
  const style=/relaxed|casual|chill|youthful|stylish/.test(q)?"classy relaxed":(/classy/.test(q)?"classy":null);
  stage("Reading preference memory","Retrieving learned likes, dislikes and rejection signals.","nMemory");
- const prefs=await mcp("get_preferences",{user_id:"demo-user"});
+ const prefs=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
  $("memoryText").textContent=(prefs.preferences||[]).slice(0,4).map(p=>(p.preference||"signal")+": "+(p.value||"")).join(" · ")||"No stored preference signal yet.";
  stage("Searching product catalogue","Filtering the mock catalogue against the current intent.","nCatalog");
  const found=await mcp("search_products",{category,max_price:budget,occasion,style,avoid}), products=found.results||[];

@@ -13,8 +13,12 @@ export default async function(req,res){
     [sessionId,userId]
   );
 
-  const prefs=await db.query(
-    "SELECT preference,value,reason,confidence,created_at FROM nope_preferences WHERE user_id=$1 ORDER BY created_at DESC LIMIT 30",
+  const sessionPrefs=await db.query(
+    "SELECT preference,value,reason,confidence,source,signal_type,created_at FROM nope_preferences WHERE user_id=$1 AND session_id=$2 ORDER BY created_at DESC LIMIT 30",
+    [userId,sessionId]
+  );
+  const profilePrefs=await db.query(
+    "SELECT preference,value,reason,confidence,source,signal_type,session_id,created_at FROM nope_preferences WHERE user_id=$1 ORDER BY created_at DESC LIMIT 30",
     [userId]
   );
   const events=await db.query(
@@ -25,8 +29,9 @@ export default async function(req,res){
   return res.json({
     session_id:sessionId,
     user_id:userId,
-    preferences:prefs.rows,
+    session_preferences:sessionPrefs.rows,
+    profile_preferences:profilePrefs.rows,
     events:events.rows,
-    preference_count:prefs.rows.length
+    preference_count:sessionPrefs.rows.length
   });
 }
