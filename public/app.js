@@ -343,6 +343,10 @@ function installRecommendationActions(items){
     const p=items[Number(b.dataset.reject)]||items[0];
     const local=SHOP_PRODUCTS.find(x=>x.name===p.name);
     const raw=((p.style||"")+" "+(p.meta||"")+" "+(p.tags||[]).join(" ")+" "+(local?.meta||"")).toLowerCase();
+    // The X/Skip action itself is a hard product-level rejection: remove the card immediately.
+    // Backend memory then makes the exclusion durable for the rest of this session.
+    const rejectedCard=b.closest(".shopProduct");
+    if(rejectedCard){rejectedCard.style.opacity="0";rejectedCard.style.transform="scale(.96)";setTimeout(()=>rejectedCard.remove(),120)}
     const inferred=raw.includes("formal")||raw.includes("structured")||raw.includes("elegant")
       ? {preference:"formality",value:"avoid overly formal / structured",reason:"product_id="+p.id+" — User rejected a formal-looking recommendation"}
       : raw.includes("shiny")||raw.includes("satin")||raw.includes("gloss")||raw.includes("party")
