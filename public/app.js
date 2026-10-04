@@ -484,7 +484,7 @@ async function analyzeTasteAfterEvidence(){
 }
 let cart=[], recorder=null, chunks=[], recording=false, transcript="";
 let demoBaseline=[];
-const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
+const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status");
 
 function setStatus(t,c){if(statusEl){statusEl.textContent=t;statusEl.className="status "+(c||"")}}
 function stage(t,d,n){$("stageTitle").textContent=t;$("stageDetail").textContent=d;["nGnani","nAgent","nMemory","nCatalog"].forEach(x=>$(x)?.classList.remove("live"));if(n)$(n)?.classList.add("live");const e=document.createElement("div");e.className="event";e.innerHTML='<span class="dot on"></span><span><b>'+t+"</b> — "+d+"</span>";$("timeline").prepend(e)}
@@ -683,7 +683,7 @@ $("surprise").onclick=()=>{
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
 const agenticOpen=document.getElementById("agenticOpen");if(agenticOpen)agenticOpen.onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
-$("speak").onclick=()=>setStatus("NØPE is visual-first. Use 🎙️ when you want to speak to NØPE directly.","ok");
+// Legacy speak-back handler removed: NØPE is listen-only.
 $("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","User chose to inspect the bag","bag_click","low");
  if(!cart.length)return setStatus("Your bag is empty. Ask NØPE to find something for you.","ok");
  const p=cart[0];if(!window.confirm("Proceed with a TEST purchase of "+p.name+" for ₹"+p.price+"? No real money will be charged."))return;
@@ -710,5 +710,5 @@ installGuidedDemo();
 if(!navigator.mediaDevices?.getUserMedia)hint.textContent="Mic unavailable — use the text box below.";
 else hint.textContent="Click 🎙️ → Allow microphone → speak → click again to send";
 window.addEventListener("error",e=>{console.error(e.error||e.message);setStatus("Page error: "+e.message,"err")});
-console.log("NØPE v33 frontend initialized");
+console.log("NØPE listen-only frontend initialized");
 })();

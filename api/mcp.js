@@ -1,4 +1,4 @@
-import { db, storage } from "hatchable";
+import { db } from "hatchable";
 
 export const access = "public";
 
@@ -16,20 +16,7 @@ const tools = [
       required: ["audio_base64"]
     }
   },
-  {
-    name: "gnani_text_to_speech",
-    description: "Convert text to speech using Gnani TTS and return a public audio URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string" },
-        language: { type: "string", default: "hi-en" },
-        voice: { type: "string", default: "Nalini" },
-        speed: { type: "number", default: 1 }
-      },
-      required: ["text"]
-    }
-  },
+  // TTS intentionally not registered. NØPE is listen-only.
   {
     name: "create_order",
     description: "Create a mock Pine Labs order. Supports test_mode values: balance_low, timeout, malformed.",
@@ -294,39 +281,7 @@ export default async function (req, res) {
     }
 
     if (name === "gnani_text_to_speech") {
-      const key = process.env.GNANI_API_KEY;
-      if (!key) return res.json(jsonRpc(id, { content:[{type:"text",text:JSON.stringify({success:false,error:"GNANI_API_KEY_NOT_CONFIGURED"})}], isError:true }));
-      const textValue = String(args.text || "");
-      if (!textValue) return res.json(errorRpc(id, -32602, "text is required"));
-      const upstream = await fetch("https://api.vachana.ai/api/v1/tts/inference", {
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-API-Key-ID":key},
-        body:JSON.stringify({
-          model:"timbre-v2.5",
-          text:textValue,
-          voice:String(args.voice || "Nalini"),
-          language:String(args.language || "hi-IN"),
-          speed:Number(args.speed || 1),
-          sample_rate:16000,
-          encoding:"linear_pcm",
-          container:"wav",
-          num_channels:1
-        })
-      });
-      const upstreamContentType = upstream.headers.get("content-type") || ""; const contentType = upstreamContentType.toLowerCase().includes("audio/") ? upstreamContentType : "audio/wav"; const audioFormat = String(args.output_format || "wav");
-      if (!upstream.ok) {
-        const err = await upstream.text();
-        return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:false,status_code:upstream.status,error:err.slice(0,1000)})}],isError:true}));
-      }
-      let buffer = new Uint8Array(await upstream.arrayBuffer());
-      const isWav = buffer.length >= 12 && buffer[0]===82 && buffer[1]===73 && buffer[2]===70 && buffer[3]===70 && buffer[8]===87 && buffer[9]===65 && buffer[10]===86 && buffer[11]===69;
-      if (!isWav) {
-        const pcm = buffer; const sampleRate=16000, channels=1, bits=16; const wav=new Uint8Array(44+pcm.length); const dv=new DataView(wav.buffer); const ws=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))}; ws(0,"RIFF"); dv.setUint32(4,36+pcm.length,true); ws(8,"WAVE"); ws(12,"fmt "); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,channels,true); dv.setUint32(24,sampleRate,true); dv.setUint32(28,sampleRate*channels*bits/8,true); dv.setUint16(32,channels*bits/8,true); dv.setUint16(34,bits,true); ws(36,"data"); dv.setUint32(40,pcm.length,true); wav.set(pcm,44); buffer=wav;
-      }
-      const audioUrl = await storage.put("gnani/" + crypto.randomUUID() + ".wav", buffer, contentType);
-      let binary = ""; for (let i = 0; i < buffer.length; i += 0x8000) binary += String.fromCharCode(...buffer.subarray(i, i + 0x8000));
-      const audio_base64 = btoa(binary);
-      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({success:true,audio_url:audioUrl,audio_base64,audio_content_type:contentType})}],isError:false}));
+      return res.json(jsonRpc(id, { content:[{type:"text",text:JSON.stringify({success:false,error:"NØPE_TTS_DISABLED",message:"NØPE is listen-only. Text-to-speech is permanently disabled."})}], isError:true }));
     }
 
     if (name === "create_order") {

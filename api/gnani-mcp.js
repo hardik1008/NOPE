@@ -1,4 +1,4 @@
-import { storage } from "hatchable";
+// Gnani integration is STT-only; no audio-output storage is used.
 
 export const access = "public";
 
@@ -19,20 +19,7 @@ const tools = [
       required: ["audio_base64"]
     }
   },
-  {
-    name: "gnani_text_to_speech",
-    description: "Convert text to speech using Gnani TTS and return a public audio URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string" },
-        language: { type: "string", default: "hi-en" },
-        voice: { type: "string", default: "Poorvi" },
-        speed: { type: "number", default: 1 }
-      },
-      required: ["text"]
-    }
-  }
+  // TTS intentionally not registered. Gnani only transcribes user speech.
 ];
 
 function rpc(id, result) {
@@ -125,40 +112,9 @@ export default async function(req, res) {
     }
 
     if (name === "gnani_text_to_speech") {
-      const text = String(args.text || "");
-      if (!text) return res.json(errorRpc(id, -32602, "text is required"));
-
-      const payload = {
-        model: "timbre-v2.5",
-        text,
-        voice: String(args.voice || "Poorvi"),
-        language: String(args.language || "hi-en"),
-        speed: Number(args.speed || 1),
-        output_format: "wav"
-      };
-
-      const upstream = await fetch("https://api.vachana.ai/api/v1/tts/inference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-API-Key-ID": key },
-        body: JSON.stringify(payload)
-      });
-
-      const contentType = upstream.headers.get("content-type") || "";
-      if (!upstream.ok) {
-        const errorText = await upstream.text();
-        return res.json(rpc(id, {
-          content: [{ type: "text", text: JSON.stringify({ success:false, status_code:upstream.status, error:errorText.slice(0,1000) }) }],
-          isError: true
-        }));
-      }
-
-      const buffer = new Uint8Array(await upstream.arrayBuffer());
-      // storage is imported statically at the top of this file
-      const url = await storage.put("gnani/" + crypto.randomUUID() + ".wav", buffer, contentType || "audio/wav");
-
       return res.json(rpc(id, {
-        content: [{ type: "text", text: JSON.stringify({ success:true, audio_url:url, content_type:contentType || "audio/wav" }) }],
-        isError: false
+        content: [{ type: "text", text: JSON.stringify({ success:false, error:"NØPE_TTS_DISABLED", message:"NØPE is listen-only. Text-to-speech is permanently disabled." }) }],
+        isError: true
       }));
     }
 
