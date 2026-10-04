@@ -134,7 +134,7 @@ function injectIntelligenceUI(){
   const experiment=document.createElement("div");
   experiment.id="demoExperiment";
   experiment.className="demoExperiment";
-  experiment.innerHTML='<div class="demoExperimentLabel">LIVE LEARNING TEST</div><div id="demoHypothesis" class="demoHypothesis">Baseline · NØPE watches first. One rejection is only a hypothesis.</div><div id="demoOutcome" class="demoOutcome">3 consistent signals are needed before a product family is hidden.</div><div id="learningProof" class="learningProof"><b>🧠 NØPE wisdom</b><span id="evidenceText">Observing · 0 / 3 supporting signals</span><span class="evidenceTrack"><i id="evidenceFill"></i></span></div>';
+  experiment.innerHTML='<div class="demoExperimentLabel">TRADE-OFF LAB</div><div id="demoHypothesis" class="demoHypothesis">Try it: choose a V-neck T-shirt first. Then reject two expensive V-neck shirts.</div><div id="demoOutcome" class="demoOutcome">NØPE should keep the neckline and switch the garment.</div><div id="learningProof" class="learningProof"><b>🧠 NØPE wisdom</b><span id="evidenceText">Observing · 0 / 3 supporting signals</span><span class="evidenceTrack"><i id="evidenceFill"></i></span></div>';
   const shopSection=store.querySelector(".shopSection");
   if(shopSection)shopSection.parentNode.insertBefore(experiment,shopSection);
   else store.appendChild(experiment);
@@ -232,6 +232,8 @@ async function refreshSessionView(){
 async function captureIntentSignals(text,source){
   const q=String(text||"").toLowerCase(), jobs=[];
   if(/shiny|chamak|flashy|glitter|satin|silk finish/.test(q)) jobs.push(recordSignal("finish","avoid shiny/flashy","User explicitly rejected shiny or flashy finishes",source,"explicit","high"));
+  if(/v[- ]?neck|v neck/.test(q)) jobs.push(recordSignal("neckline","prefer V-neck","User explicitly mentioned a V-neck neckline",source,"explicit","high"));
+  if(/o[- ]?neck|round[- ]?neck|crew[- ]?neck/.test(q)) jobs.push(recordSignal("neckline","prefer O-neck","User explicitly mentioned an O-neck / round neckline",source,"explicit","high"));
   if(/formal|uncle|office-like|corporate/.test(q)) jobs.push(recordSignal("formality","avoid overly formal","User indicated they do not want a formal or office-like look",source,"explicit","high"));
   if(/relaxed|casual|comfortable|comfy|easy/.test(q)) jobs.push(recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium"));
   if(/classy|elegant|clean|minimal|understated/.test(q)) jobs.push(recordSignal("style","prefer clean and understated","Current request indicates a clean, understated style",source,"inferred","medium"));
@@ -250,6 +252,8 @@ function updateIntelligence(q,found,picks){
   const budget=(text.match(/(?:₹|rs\\.?|rupees?\\s*)([0-9,]+)/i)||[])[1];
   const chips=[
     /wedding|shaadi|marriage/.test(text)?"Wedding":null,
+    /v[- ]?neck/.test(text)?"V-Neck":null,
+    /o[- ]?neck|round[- ]?neck/.test(text)?"O-Neck":null,
     /shirt|clothing|top/.test(text)?"Shirt":null,
     budget?"Budget ≤ ₹"+budget:null,
     /classy/.test(text)?"Classy":null,
@@ -286,6 +290,7 @@ function showRejectionQuestion(p,inferred){
   if(nudgeState.busy||document.hidden)return;
   const raw=productWords(p),opts=[];
   if(/formal|structured|slim|fitted|tailored/.test(raw))opts.push(["Too formal",["formality","avoid overly formal / structured"]],["Too fitted",["fit","avoid very fitted cuts"]]);
+  if(p.neck&&(p.garment||"").toLowerCase()==="shirt"&&Number(p.price||0)>=3000)opts.push(["Too expensive",["price","prefer a lower-priced "+(p.neck==="v"?"V-neck":"O-neck")+" T-shirt instead"]]);
   if(/shiny|satin|gloss|silk|party/.test(raw))opts.push(["Too shiny",["finish","avoid shiny / glossy finishes"]],["Too party",["occasion","prefer less party-like pieces"]]);
   if(/neon|loud|floral|bold|check/.test(raw))opts.push(["Too loud",["expression","avoid loud / expressive pieces"]],["Too colourful",["colour direction","prefer quieter colours"]]);
   if(/linen|cotton|denim|corduroy/.test(raw))opts.push(["Not this fabric",["material","explore a different fabric"]]);
@@ -297,7 +302,7 @@ function showRejectionQuestion(p,inferred){
   let timer=setTimeout(()=>dismiss(),4200);
   function dismiss(){clearTimeout(timer);el.classList.remove("show");setTimeout(()=>el.remove(),220);nudgeState.busy=false}
   el.querySelector(".microClose").onclick=()=>{recordBehaviorSignal("rejection question skipped",p.name,"User skipped a product-grounded follow-up question","rejection_question_dismiss","low");dismiss()};
-  el.querySelectorAll("[data-rej]").forEach(btn=>btn.onclick=async()=>{const chosen=unique[Number(btn.dataset.rej)];if(chosen[1]){await recordSignal(chosen[1][0],chosen[1][1],"product_id="+p.id+" — User answered a product-grounded rejection question about "+p.name,"ui","rejection_feedback","high");showLearnedMemory(chosen[1][1],"User explained what felt wrong about "+p.name);learnTaste(p,-2.4,"rejection feedback")}else{recordBehaviorSignal("product rejection",p.name,"User said this specific product was simply not right","rejection_feedback","low")}setStatus("✓ NØPE got the reason and can choose better next time","ok");dismiss()});
+  el.querySelectorAll("[data-rej]").forEach(btn=>btn.onclick=async()=>{const chosen=unique[Number(btn.dataset.rej)];if(chosen[1]){const extra="product_id="+p.id+" — neck="+(p.neck||"unknown")+" — garment="+(p.garment||"unknown")+" — price="+p.price+" — User answered a product-grounded rejection question about "+p.name;await recordSignal(chosen[1][0],chosen[1][1],extra,"ui","rejection_feedback","high");showLearnedMemory(chosen[1][1],"User explained what felt wrong about "+p.name);learnTaste(p,-2.4,"rejection feedback")}else{recordBehaviorSignal("product rejection",p.name,"product_id="+p.id+" — neck="+(p.neck||"unknown")+" — garment="+(p.garment||"unknown")+" — User said this specific product was simply not right","rejection_feedback","low")}setStatus("✓ NØPE got the reason and can choose better next time","ok");dismiss()});
 }
 function renderTasteLab(items){
   const host=document.querySelector(".shopSection");if(!host)return;
@@ -368,19 +373,30 @@ function installRecommendationActions(items){
       const candidates=rankedNames.map(name=>SHOP_PRODUCTS.find(x=>x.name===name)).filter(Boolean);
       const learning=ranked.learning?.[inferred.preference]||null;
       const confirmed=Boolean(learning?.confirmed);
+      const pricePivot=ranked.learning?.pricePivot;
       const clusterFor=pref=>pref==="formality"?/formal|structured|executive|slim|fitted/i:pref==="finish"?/shiny|satin|gloss|party/i:pref==="expression"?/loud|floral|neon|bold|check|graphic/i:/^$/;
       const cluster=clusterFor(inferred.preference);
       const similar=SHOP_PRODUCTS.filter(x=>cluster.test(productWords(x))&&!candidates.some(y=>y.id===x.id));
       const nextChoices=confirmed?[...candidates,...SHOP_PRODUCTS.filter(x=>!candidates.some(y=>y.id===x.id))].slice(0,8):[...candidates.slice(0,5),...similar.slice(0,3)].slice(0,8);
       renderShopCore(nextChoices);
       updateLearningProof(inferred,ranked.learning);
-      proofStep("update",confirmed?"Pattern confirmed · similar products can now be suppressed":"Learning only · similar products deliberately remain visible");
-      const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent=confirmed?"adapted · pattern confirmed":"observing · no premature filtering";
-      const outcome=document.getElementById("demoOutcome");if(outcome)outcome.innerHTML=confirmed?"<strong>Confirmed</strong> · 3 different products support the same rejection, so NØPE can now suppress this family.":"<strong>Still observing</strong> · the rejected family stays visible because one signal is not enough.";
-      const hypothesis=document.getElementById("demoHypothesis");if(hypothesis)hypothesis.textContent=confirmed?"Pattern confirmed → "+inferred.value:"Hypothesis only → "+inferred.value;
-      updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
-      stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
-      setStatus("✓ Learned from rejection and changed the shortlist","ok");
+      if(pricePivot?.confirmed){
+        const neckLabel=pricePivot.neck==="v"?"V-neck":"O-neck";
+        proofStep("update","Price bias detected · keep "+neckLabel+" · switch shirts → T-shirts");
+        const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent="human bias · neckline kept · price wins";
+        const outcome=document.getElementById("demoOutcome");if(outcome)outcome.innerHTML="<strong>Human bias detected</strong> · you kept loving the neckline, but rejected premium shirts on price. NØPE kept the neckline and switched garment.";
+        const hypothesis=document.getElementById("demoHypothesis");if(hypothesis)hypothesis.textContent="Stable preference → "+neckLabel+" · constraint emerged → price · compromise → affordable T-shirts";
+        updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
+        stage("NØPE found the compromise","The preferred neckline stayed stable. Price rejection changed the garment category, so only cheaper "+neckLabel+" T-shirts remain.","nCatalog");
+      }else{
+        proofStep("update",confirmed?"Pattern confirmed · similar products can now be suppressed":"Learning only · similar products deliberately remain visible");
+        const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent=confirmed?"adapted · pattern confirmed":"observing · no premature filtering";
+        const outcome=document.getElementById("demoOutcome");if(outcome)outcome.innerHTML=confirmed?"<strong>Confirmed</strong> · 3 different products support the same rejection, so NØPE can now suppress this family.":"<strong>Still observing</strong> · the rejected family stays visible because one signal is not enough.";
+        const hypothesis=document.getElementById("demoHypothesis");if(hypothesis)hypothesis.textContent=confirmed?"Pattern confirmed → "+inferred.value:"Hypothesis only → "+inferred.value;
+        updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
+        stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
+      }
+      setStatus("✓ NØPE updated the shortlist using a multi-factor decision","ok");
     }catch(e){setStatus("Learning error: "+e.message,"err")}
   });
 }
@@ -439,7 +455,23 @@ const SHOP_PRODUCTS=[
 {id:"baggy-denim",name:"Washed Denim Overshirt",price:2499,meta:"Urban Loom · Denim · Oversized",shape:"denim",colors:C.blue},
 {id:"yellow-check",name:"Yellow Micro Check Shirt",price:1899,meta:"Weekend · Check · Bright",shape:"yellowcheck",colors:C.bright},
 {id:"maroon-mandarin",name:"Maroon Mandarin Shirt",price:2399,meta:"Monarch · Festive · Bold",shape:"maroon",colors:C.dark},
-{id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",shape:"olive",colors:C.linen}
+{id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",shape:"olive",colors:C.linen},
+{id:"vshirt-linen-sand",name:"V-Neck Linen Shirt · Sand",price:4499,meta:"Atelier · V-Neck · Shirt · Linen · Relaxed · Premium",shape:"vneck",neck:"v",garment:"shirt",styleFamily:"linen-relaxed",colors:C.linen,tags:["v-neck","linen","premium","relaxed"]},
+{id:"vshirt-oxford-blue",name:"V-Neck Oxford Shirt · Blue",price:3899,meta:"Atelier · V-Neck · Shirt · Oxford · Smart",shape:"vneck",neck:"v",garment:"shirt",styleFamily:"oxford-smart",colors:C.blue,tags:["v-neck","oxford","smart","premium"]},
+{id:"vshirt-silk-black",name:"V-Neck Silk-Blend Shirt · Black",price:4999,meta:"After Dark · V-Neck · Shirt · Silk blend · Evening",shape:"vneck",neck:"v",garment:"shirt",styleFamily:"silk-evening",colors:C.dark,tags:["v-neck","silk","evening","premium"]},
+{id:"vshirt-boxy-olive",name:"V-Neck Boxy Shirt · Olive",price:3599,meta:"Urban Loom · V-Neck · Shirt · Boxy · Casual",shape:"vneck",neck:"v",garment:"shirt",styleFamily:"boxy-casual",colors:C.linen,tags:["v-neck","boxy","casual","premium"]},
+{id:"vtee-essential-white",name:"V-Neck Essential T-Shirt · White",price:799,meta:"NØPE Basics · V-Neck · T-Shirt · Cotton · Essential",shape:"vneck",neck:"v",garment:"t-shirt",styleFamily:"essential",colors:C.neutral,tags:["v-neck","cotton","everyday","affordable"]},
+{id:"vtee-heavy-blue",name:"V-Neck Heavyweight Tee · Blue",price:999,meta:"NØPE Basics · V-Neck · T-Shirt · Heavyweight · Clean",shape:"vneck",neck:"v",garment:"t-shirt",styleFamily:"heavyweight",colors:C.blue,tags:["v-neck","heavyweight","clean","affordable"]},
+{id:"vtee-modal-black",name:"V-Neck Modal Tee · Black",price:1099,meta:"NØPE Soft · V-Neck · T-Shirt · Modal · Smooth",shape:"vneck",neck:"v",garment:"t-shirt",styleFamily:"modal",colors:C.dark,tags:["v-neck","modal","smooth","affordable"]},
+{id:"vtee-oversized-sage",name:"V-Neck Oversized Tee · Sage",price:899,meta:"NØPE Basics · V-Neck · T-Shirt · Oversized · Relaxed",shape:"vneck",neck:"v",garment:"t-shirt",styleFamily:"oversized",colors:C.linen,tags:["v-neck","oversized","relaxed","affordable"]},
+{id:"oshirt-linen-ivory",name:"O-Neck Linen Shirt · Ivory",price:3299,meta:"Atelier · O-Neck · Shirt · Linen · Clean",shape:"oneck",neck:"o",garment:"shirt",styleFamily:"linen-clean",colors:C.neutral,tags:["o-neck","linen","clean","premium"]},
+{id:"oshirt-oxford-navy",name:"O-Neck Oxford Shirt · Navy",price:3499,meta:"Atelier · O-Neck · Shirt · Oxford · Smart",shape:"oneck",neck:"o",garment:"shirt",styleFamily:"oxford-smart",colors:C.blue,tags:["o-neck","oxford","smart","premium"]},
+{id:"oshirt-texture-rust",name:"O-Neck Textured Shirt · Rust",price:3799,meta:"Urban Loom · O-Neck · Shirt · Textured · Casual",shape:"oneck",neck:"o",garment:"shirt",styleFamily:"textured-casual",colors:C.earth,tags:["o-neck","textured","casual","premium"]},
+{id:"oshirt-tailored-charcoal",name:"O-Neck Tailored Shirt · Charcoal",price:4199,meta:"Monarch · O-Neck · Shirt · Tailored · Structured",shape:"oneck",neck:"o",garment:"shirt",styleFamily:"tailored",colors:C.dark,tags:["o-neck","tailored","structured","premium"]},
+{id:"otee-essential-black",name:"O-Neck Essential T-Shirt · Black",price:699,meta:"NØPE Basics · O-Neck · T-Shirt · Cotton · Essential",shape:"oneck",neck:"o",garment:"t-shirt",styleFamily:"essential",colors:C.dark,tags:["o-neck","cotton","everyday","affordable"]},
+{id:"otee-heavy-white",name:"O-Neck Heavyweight Tee · White",price:899,meta:"NØPE Basics · O-Neck · T-Shirt · Heavyweight · Clean",shape:"oneck",neck:"o",garment:"t-shirt",styleFamily:"heavyweight",colors:C.neutral,tags:["o-neck","heavyweight","clean","affordable"]},
+{id:"otee-pigment-olive",name:"O-Neck Pigment Tee · Olive",price:949,meta:"NØPE Basics · O-Neck · T-Shirt · Pigment · Relaxed",shape:"oneck",neck:"o",garment:"t-shirt",styleFamily:"pigment",colors:C.linen,tags:["o-neck","pigment","relaxed","affordable"]},
+{id:"otee-boxy-blue",name:"O-Neck Boxy Tee · Blue",price:849,meta:"NØPE Basics · O-Neck · T-Shirt · Boxy · Youthful",shape:"oneck",neck:"o",garment:"t-shirt",styleFamily:"boxy",colors:C.blue,tags:["o-neck","boxy","youthful","affordable"]}
 ];
 const positiveEvidenceKey="nope_positive_evidence_"+sessionId();
 let positiveEvidence=[];
@@ -496,7 +528,11 @@ function inferProductAffinity(p){
   if(/classy|minimal|clean|elegant/.test(raw))signals.push(["style","clean and understated"]);
   if(/casual|cuban|camp|resort/.test(raw))signals.push(["style","casual resort"]);
   if(/youthful|stylish/.test(raw))signals.push(["style","youthful"]);
-  signals.slice(0,3).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
+  if(/v[- ]?neck/.test(raw))signals.push(["neckline","prefer V-neck"]);
+  if(/o[- ]?neck|round[- ]?neck|crew[- ]?neck/.test(raw))signals.push(["neckline","prefer O-neck"]);
+  if(/t-shirt|tee/.test(raw))signals.push(["garment preference","prefer T-shirt"]);
+  if(/shirt/.test(raw)&&!/t-shirt|tee/.test(raw))signals.push(["garment preference","prefer shirt"]);
+  signals.slice(0,5).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
 }
 function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);registerPositiveEvidence(p,"add_to_bag");recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
 const tasteKey="nope_taste_"+sessionId();
@@ -541,6 +577,8 @@ function productArtwork(p,color,accent){
  overshirt:'<path '+common+' d="M78 68L122 31L150 55L178 31L222 68L250 136L214 151L198 108L198 344L102 344L102 108L86 151L50 136Z"/><path d="M122 31L150 55L178 31L168 88L132 88Z" fill="'+a+'" stroke="'+b+'" stroke-width="4"/><rect x="116" y="145" width="28" height="44" rx="3" fill="'+a+'" stroke="'+b+'" stroke-width="3"/><rect x="156" y="145" width="28" height="44" rx="3" fill="'+a+'" stroke="'+b+'" stroke-width="3"/>',
  polo:'<path '+common+' d="M92 70L128 39L150 61L172 39L208 70L231 124L202 140L190 105L190 332L110 332L110 105L98 140L69 124Z"/><path d="M128 39L150 61L172 39L163 91L137 91Z" fill="#fff9" stroke="'+b+'" stroke-width="4"/><path d="M137 91L150 102L163 91" fill="none" stroke="'+b+'" stroke-width="4"/>',
  tee:'<path '+common+' d="M101 67L132 43L150 62L168 43L199 67L229 123L196 140L182 109L182 324L118 324L118 109L104 140L71 123Z"/><path d="M132 43L150 62L168 43" fill="none" stroke="'+b+'" stroke-width="6"/><path d="M124 75H176" stroke="'+b+'" stroke-width="3" opacity=".5"/>',
+  vneck:'<path '+common+' d="M84 69L126 36L150 61L174 36L216 69L241 124L207 142L193 108L190 332L110 332L107 108L93 142L59 124Z"/><path d="M126 36L150 88L174 36" fill="none" stroke="'+b+'" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>',
+  oneck:'<path '+common+' d="M84 69L126 36L150 61L174 36L216 69L241 124L207 142L193 108L190 332L110 332L107 108L93 142L59 124Z"/><circle cx="150" cy="67" r="27" fill="none" stroke="'+b+'" stroke-width="7"/>',
  satin:'<path '+common+' d="M83 70L124 35L150 60L176 35L217 70L243 126L209 145L195 108L190 332L110 332L105 108L91 145L57 126Z"/><path d="M124 35L150 60L176 35L163 91L137 91Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M116 110L184 300" stroke="#fff8" stroke-width="12" opacity=".45"/><path d="M150 60V332" stroke="#fff6" stroke-width="3"/>',
  neon:'<path '+common+' d="M79 73L123 35L150 65L177 35L221 73L246 128L211 148L194 107L194 330L106 330L106 107L89 148L54 128Z"/><path d="M123 35L150 65L177 35L165 93L135 93Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M92 180L208 120M90 225L210 165M92 270L210 210" stroke="#fff8" stroke-width="8"/>',
  floral:'<path '+common+' d="M84 69L126 36L150 61L174 36L216 69L241 124L207 142L193 108L190 332L110 332L107 108L93 142L59 124Z"/><path d="M126 36L150 61L174 36L162 91L138 91Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><g fill="'+b+'"><circle cx="125" cy="140" r="8"/><circle cx="175" cy="165" r="10"/><circle cx="132" cy="210" r="9"/><circle cx="170" cy="260" r="8"/><circle cx="125" cy="285" r="7"/></g>',
@@ -621,8 +659,9 @@ function audioBufferToWav(b){
 function b64(blob){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(",")[1]);r.onerror=no;r.readAsDataURL(blob)})}
 async function runNopeVoice(){
  stage("NØPE is interpreting intent","Extracting category, occasion, budget and exclusions.","nAgent");
- const q=transcript.toLowerCase(), bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i), budget=bm?Number(bm[1].replace(/,/g,"")):3000;
+ const q=transcript.toLowerCase(), bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i), budget=bm?Number(bm[1].replace(/,/g,"")):null;
  const category=/shirt|clothing|top/.test(q)?"clothing":"shirt", occasion=/wedding|shaadi|marriage/.test(q)?"wedding":null;
+ const neck=/v[- ]?neck|v neck/.test(q)?"v":(/o[- ]?neck|round[- ]?neck|crew[- ]?neck/.test(q)?"o":null);
  const avoid=[/shiny|chamak|silk/.test(q)?"shiny":null,/formal|uncle/.test(q)?"formal":null].filter(Boolean).join(",");
  const style=/relaxed|casual|chill|youthful|stylish/.test(q)?"classy relaxed":(/classy/.test(q)?"classy":null);
  stage("Reading preference memory","Retrieving learned likes, dislikes and rejection signals.","nMemory");
@@ -630,7 +669,7 @@ async function runNopeVoice(){
  proofStep("backend","Backend fetched "+(prefs.count||prefs.preferences?.length||0)+" stored preference signal(s) from Postgres");
  $("memoryText").textContent=(prefs.preferences||[]).slice(0,4).map(p=>(p.preference||"signal")+": "+(p.value||"")).join(" · ")||"No stored preference signal yet.";
  stage("Searching product catalogue","Filtering the mock catalogue against the current intent.","nCatalog");
- const found=await mcp("search_products",{category,max_price:budget,occasion,style,avoid}), products=found.results||[];
+ const found=await mcp("search_products",{category,max_price:budget,occasion,style,avoid,neck}), products=found.results||[];
  $("catalogue").innerHTML=products.slice(0,4).map(p=>'<div class="product"><div class="pname">'+p.name+'</div><div class="price">₹'+p.price+'</div><span class="tag">'+(p.category||"shirt")+" · returned</span></div>").join("")||'<div class="product"><div class="pname">No matching products</div></div>';
  let ranked=products;
  if(products.length){const rr=await mcp("rank_products",{products,preferences:prefs.preferences||[],intent:transcript});ranked=rr.results||products}

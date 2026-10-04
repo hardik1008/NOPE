@@ -55,7 +55,8 @@ const tools = [
         material: { type: ["string", "null"] },
         color: { type: ["string", "null"] },
         formality: { type: ["string", "null"] },
-        finish: { type: ["string", "null"] }
+        finish: { type: ["string", "null"] },
+        neck: { type: ["string", "null"], description: "Neckline such as v or o" }
       },
       required: ["category"]
     }
@@ -356,6 +357,30 @@ export default async function (req, res) {
       const formalEvidence = distinctProductsFor("formality", /avoid/);
       const shinyEvidence = distinctProductsFor("finish", /avoid/);
       const expressionEvidence = distinctProductsFor("expression", /avoid|loud/);
+
+      // Human-bias demo: preserve the liked neckline while allowing price rejection to change garment category.
+      const neckPreference = (() => {
+        let v = 0, o = 0;
+        prefs.forEach(p => {
+          const raw = (String(p.preference||"") + " " + String(p.value||"")).toLowerCase();
+          const w = weight(p);
+          if ((String(p.preference||"").toLowerCase()==="neckline" || raw.includes("v-neck")) && /v-neck|v neck/.test(raw)) v += w;
+          if ((String(p.preference||"").toLowerCase()==="neckline" || raw.includes("o-neck") || raw.includes("round-neck")) && /o-neck|o neck|round-neck/.test(raw)) o += w;
+        });
+        if (intentText.includes("v-neck") || intentText.includes("v neck")) v += 1.5;
+        if (intentText.includes("o-neck") || intentText.includes("o neck") || intentText.includes("round neck")) o += 1.5;
+        return v >= o && v > 0 ? "v" : o > 0 ? "o" : null;
+      })();
+
+      const pricePivotEvidence = {v:new Set(),o:new Set()};
+      prefs.filter(p=>String(p.preference||"").toLowerCase()==="price").forEach(p=>{
+        const raw=(String(p.value||"")+" "+String(p.reason||"")).toLowerCase();
+        const idMatch=String(p.reason||"").match(/product_id=([^\s—]+)/i);
+        const neck = /neck=v|v-neck|v neck/.test(raw) ? "v" : (/neck=o|o-neck|o neck|round-neck/.test(raw) ? "o" : null);
+        const shirtRejected = /garment=shirt/.test(raw) || (raw.includes("shirt") && !raw.includes("t-shirt"));
+        if(idMatch && neck && shirtRejected && /expensive|lower-priced|lower priced|cheaper|affordable|price/.test(raw)) pricePivotEvidence[neck].add(idMatch[1]);
+      });
+      const pivotNeck = neckPreference && pricePivotEvidence[neckPreference].size >= 2 ? neckPreference : null;
       const threshold = 3;
       const explicitFormal = /(?:nothing|not|no|avoid|don't|dont).{0,22}(formal|structured|office|uncle)/.test(intentText);
       const explicitShiny = /(?:nothing|not|no|avoid|don't|dont).{0,22}(shiny|satin|gloss|silk)/.test(intentText);
@@ -365,6 +390,7 @@ export default async function (req, res) {
       const enoughExpression = explicitLoud || (expressionEvidence.score >= threshold && expressionEvidence.products.size >= threshold);
       const filtered = products.filter(p => {
         const hay = JSON.stringify(p).toLowerCase();
+        if (pivotNeck && (String(p.neck||"").toLowerCase() !== pivotNeck || String(p.garment||"").toLowerCase() !== "t-shirt")) return false;
         if (enoughFormal && /formal|structured|executive|slim|fitted/.test(hay)) return false;
         if (enoughShiny && /shiny|satin|gloss|party/.test(hay)) return false;
         if (enoughExpression && /loud|floral|neon|bold|check|graphic/.test(hay)) return false;
@@ -375,6 +401,10 @@ export default async function (req, res) {
         let score = 50;
         const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
         const hay = JSON.stringify(p).toLowerCase();
+        if (neckPreference==="v" && /v-neck|v neck/.test(hay)) score += 28;
+        if (neckPreference==="o" && /o-neck|o neck|round-neck|round neck/.test(hay)) score += 28;
+        if (pivotNeck && String(p.neck||"").toLowerCase()===pivotNeck && String(p.garment||"").toLowerCase()==="t-shirt") score += 40;
+        if (pivotNeck && String(p.garment||"").toLowerCase()==="shirt") score -= 45;
         if (intentText.includes("relaxed") && (tags.includes("relaxed") || hay.includes("relaxed"))) score += 15;
         if (intentText.includes("classy") && (tags.includes("classy") || hay.includes("classy"))) score += 10;
         if (intentText.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
@@ -387,7 +417,7 @@ export default async function (req, res) {
         if (expressionEvidence.score > 0 && !enoughExpression && /loud|floral|neon|bold|check|graphic/.test(hay)) score -= Math.min(18, 5 + expressionEvidence.score * 3);
         return {...p, fit_score: Math.max(0, Math.min(100, score))};
       }).sort((a,b)=>b.fit_score-a.fit_score).slice(0,8);
-      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked,learning:{threshold,formality:{score:formalEvidence.score,distinct_products:formalEvidence.products.size,confirmed:enoughFormal},finish:{score:shinyEvidence.score,distinct_products:shinyEvidence.products.size,confirmed:enoughShiny},expression:{score:expressionEvidence.score,distinct_products:expressionEvidence.products.size,confirmed:enoughExpression}}})}],isError:false}));
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked,learning:{threshold,formality:{score:formalEvidence.score,distinct_products:formalEvidence.products.size,confirmed:enoughFormal},finish:{score:shinyEvidence.score,distinct_products:shinyEvidence.products.size,confirmed:enoughShiny},expression:{score:expressionEvidence.score,distinct_products:expressionEvidence.products.size,confirmed:enoughExpression},neckPreference,pricePivot:{neck:pivotNeck,distinct_products:pivotNeck?pricePivotEvidence[pivotNeck].size:0,confirmed:Boolean(pivotNeck),decision:pivotNeck?(pivotNeck==="v"?"Keep V-neck · switch from expensive shirts to affordable T-shirts":"Keep O-neck · switch from expensive shirts to affordable T-shirts"):null}}})}],isError:false}));
     }
 
     if (name === "confirm_purchase") {
@@ -411,6 +441,182 @@ export default async function (req, res) {
 
     if (name === "search_products") {
       const catalogue = [
+  {
+    "product_id": "VSHIRT-001",
+    "name": "V-Neck Linen Shirt · Sand",
+    "price": 4499,
+    "category": "shirt",
+    "occasion": "wedding dinner casual",
+    "style": "classy relaxed premium",
+    "neck": "v",
+    "garment": "shirt",
+    "tags": ["v-neck","linen","premium","relaxed"]
+  },
+  {
+    "product_id": "VSHIRT-002",
+    "name": "V-Neck Oxford Shirt · Blue",
+    "price": 3899,
+    "category": "shirt",
+    "occasion": "wedding dinner office",
+    "style": "smart classy premium",
+    "neck": "v",
+    "garment": "shirt",
+    "tags": ["v-neck","oxford","smart","premium"]
+  },
+  {
+    "product_id": "VSHIRT-003",
+    "name": "V-Neck Silk-Blend Shirt · Black",
+    "price": 4999,
+    "category": "shirt",
+    "occasion": "wedding dinner party",
+    "style": "evening classy premium",
+    "neck": "v",
+    "garment": "shirt",
+    "tags": ["v-neck","silk","evening","premium"]
+  },
+  {
+    "product_id": "VSHIRT-004",
+    "name": "V-Neck Boxy Shirt · Olive",
+    "price": 3599,
+    "category": "shirt",
+    "occasion": "casual travel festive",
+    "style": "boxy relaxed premium",
+    "neck": "v",
+    "garment": "shirt",
+    "tags": ["v-neck","boxy","casual","premium"]
+  },
+  {
+    "product_id": "VTEE-001",
+    "name": "V-Neck Essential T-Shirt · White",
+    "price": 799,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed youthful affordable",
+    "neck": "v",
+    "garment": "t-shirt",
+    "tags": ["v-neck","cotton","everyday","affordable"]
+  },
+  {
+    "product_id": "VTEE-002",
+    "name": "V-Neck Heavyweight Tee · Blue",
+    "price": 999,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "clean relaxed affordable",
+    "neck": "v",
+    "garment": "t-shirt",
+    "tags": ["v-neck","heavyweight","clean","affordable"]
+  },
+  {
+    "product_id": "VTEE-003",
+    "name": "V-Neck Modal Tee · Black",
+    "price": 1099,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "smooth relaxed affordable",
+    "neck": "v",
+    "garment": "t-shirt",
+    "tags": ["v-neck","modal","smooth","affordable"]
+  },
+  {
+    "product_id": "VTEE-004",
+    "name": "V-Neck Oversized Tee · Sage",
+    "price": 899,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed youthful affordable",
+    "neck": "v",
+    "garment": "t-shirt",
+    "tags": ["v-neck","oversized","relaxed","affordable"]
+  },
+  {
+    "product_id": "OSHIRTO-001",
+    "name": "O-Neck Linen Shirt · Ivory",
+    "price": 3299,
+    "category": "shirt",
+    "occasion": "wedding dinner festive",
+    "style": "clean classy premium",
+    "neck": "o",
+    "garment": "shirt",
+    "tags": ["o-neck","linen","clean","premium"]
+  },
+  {
+    "product_id": "OSHIRТ-002",
+    "name": "O-Neck Oxford Shirt · Navy",
+    "price": 3499,
+    "category": "shirt",
+    "occasion": "wedding dinner office",
+    "style": "smart classy premium",
+    "neck": "o",
+    "garment": "shirt",
+    "tags": ["o-neck","oxford","smart","premium"]
+  },
+  {
+    "product_id": "OSHIRТ-003",
+    "name": "O-Neck Textured Shirt · Rust",
+    "price": 3799,
+    "category": "shirt",
+    "occasion": "casual travel festive",
+    "style": "textured relaxed premium",
+    "neck": "o",
+    "garment": "shirt",
+    "tags": ["o-neck","textured","casual","premium"]
+  },
+  {
+    "product_id": "OSHIRТ-004",
+    "name": "O-Neck Tailored Shirt · Charcoal",
+    "price": 4199,
+    "category": "shirt",
+    "occasion": "wedding office",
+    "style": "tailored formal premium",
+    "neck": "o",
+    "garment": "shirt",
+    "tags": ["o-neck","tailored","structured","premium"]
+  },
+  {
+    "product_id": "OTEE-001",
+    "name": "O-Neck Essential T-Shirt · Black",
+    "price": 699,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed youthful affordable",
+    "neck": "o",
+    "garment": "t-shirt",
+    "tags": ["o-neck","cotton","everyday","affordable"]
+  },
+  {
+    "product_id": "OTEE-002",
+    "name": "O-Neck Heavyweight Tee · White",
+    "price": 899,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "clean relaxed affordable",
+    "neck": "o",
+    "garment": "t-shirt",
+    "tags": ["o-neck","heavyweight","clean","affordable"]
+  },
+  {
+    "product_id": "OTEE-003",
+    "name": "O-Neck Pigment Tee · Olive",
+    "price": 949,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "relaxed earthy affordable",
+    "neck": "o",
+    "garment": "t-shirt",
+    "tags": ["o-neck","pigment","relaxed","affordable"]
+  },
+  {
+    "product_id": "OTEE-004",
+    "name": "O-Neck Boxy Tee · Blue",
+    "price": 849,
+    "category": "t-shirt",
+    "occasion": "casual travel festive",
+    "style": "boxy youthful affordable",
+    "neck": "o",
+    "garment": "t-shirt",
+    "tags": ["o-neck","boxy","youthful","affordable"]
+  },
   {
     "product_id": "SHIRT-001",
     "name": "Linen Resort Shirt",
@@ -1078,6 +1284,7 @@ export default async function (req, res) {
       const color = String(args.color || "").toLowerCase();
       const formality = String(args.formality || "").toLowerCase();
       const finish = String(args.finish || "").toLowerCase();
+      const neck = String(args.neck || "").toLowerCase();
       const style = String(args.style || "").toLowerCase();
       const avoid = String(args.avoid || "").toLowerCase();
       const avoidWords = avoid.split(/[,\s]+/).filter(Boolean);
@@ -1091,9 +1298,10 @@ export default async function (req, res) {
         if (color && !JSON.stringify(p).toLowerCase().includes(color)) return false;
         if (formality && !JSON.stringify(p).toLowerCase().includes(formality)) return false;
         if (finish && !JSON.stringify(p).toLowerCase().includes(finish)) return false;
+        if (neck && String(p.neck || "").toLowerCase() !== neck && !JSON.stringify(p).toLowerCase().includes(neck === "v" ? "v-neck" : "o-neck")) return false;
         if (avoidWords.some(w => p.tags.some(t => t.includes(w)) || String(p.style).toLowerCase().includes(w))) return false;
         return true;
-      }).slice(0,8);
+      }).slice(0,40);
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({
           results,
@@ -1168,7 +1376,11 @@ export default async function (req, res) {
         ["shiny", /shiny|satin|gloss|silk/i, "shiny finishes"],
         ["expressive", /loud|neon|floral|bold|check|graphic|orange|yellow|maroon/i, "more expressive pieces"],
         ["dark", /black|navy|charcoal|maroon|olive|grey|dark/i, "deeper tones"],
-        ["light", /white|ivory|sand|sage|beige|light/i, "lighter tones"]
+        ["light", /white|ivory|sand|sage|beige|light/i, "lighter tones"],
+        ["vneck", /v-neck/i, "V-neck"],
+        ["oneck", /o-neck|round-neck|crew-neck/i, "O-neck"],
+        ["tee", /t-shirt|tee/i, "T-shirts"],
+        ["affordable", /affordable|value|budget-friendly/i, "affordable options"]
       ];
       const counts = {};
       traitDefs.forEach(([key,re,label])=>counts[key]={key,label,count:0,products:[]});
