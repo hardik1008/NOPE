@@ -681,6 +681,19 @@ async function runNopeVoice(){
  $("catalogue").innerHTML=products.slice(0,4).map(p=>'<div class="product"><div class="pname">'+p.name+'</div><div class="price">₹'+p.price+'</div><span class="tag">'+(p.category||"shirt")+" · returned</span></div>").join("")||'<div class="product"><div class="pname">No matching products</div></div>';
  let ranked=products;
  if(products.length){const rr=await mcp("rank_products",{products,preferences:prefs.preferences||[],intent:transcript});ranked=rr.results||products}
+ const flexibleTopRequest=/tops?/.test(q)||/shirts?\s*(?:or|and|\/|\+)\s*t[- ]?shirts?/.test(q)||/t[- ]?shirts?\s*(?:or|and|\/|\+)\s*shirts?/.test(q);
+ if(flexibleTopRequest&&neck){
+   const matching=ranked.filter(x=>String(x.neck||"").toLowerCase()===neck);
+   const shirts=matching.filter(x=>String(x.garment||"").toLowerCase()==="shirt");
+   const tees=matching.filter(x=>String(x.garment||"").toLowerCase()==="t-shirt");
+   const mixed=[]; let si=0,ti=0;
+   while(mixed.length<matching.length&&(si<shirts.length||ti<tees.length)){
+     if(si<shirts.length)mixed.push(shirts[si++]);
+     if(ti<tees.length)mixed.push(tees[ti++]);
+   }
+   const rest=ranked.filter(x=>!mixed.some(y=>y.product_id===x.product_id));
+   ranked=[...mixed,...rest];
+ }
  if(ranked.length){renderShopMatches(ranked);proofStep("update","UI re-ranked "+ranked.length+" products using the fetched memory");}
  const picks=ranked.slice(0,3);
  updateIntelligence(transcript,found,picks);
