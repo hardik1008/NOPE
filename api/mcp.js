@@ -92,6 +92,20 @@ const tools = [
     }
   },
   {
+    name: "remove_preference",
+    description: "Remove a previously learned preference for this session, such as a saved product that the user unfavourited.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        user_id: { type: "string" },
+        preference: { type: "string" },
+        value: { type: "string" },
+        session_id: { type: ["string","null"] }
+      },
+      required: ["user_id","preference","value"]
+    }
+  },
+  {
     name: "get_preferences",
     description: "Retrieve a user's learned preferences and rejection signals.",
     inputSchema: {
@@ -1122,6 +1136,25 @@ export default async function (req, res) {
       }
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({ status:"SAVED", message:"Preference learned and stored. Fresh alternatives are ready.", preference:args.preference, value:args.value, confidence:args.confidence || "medium", next_options }) }],
+        isError:false
+      }));
+    }
+
+    if (name === "remove_preference") {
+      const userId = String(args.user_id || "");
+      const preference = String(args.preference || "");
+      const value = String(args.value || "");
+      const session = String(args.session_id || "");
+      const deleted = await db.query(
+        "DELETE FROM nope_preferences WHERE user_id = $1 AND preference = $2 AND value = $3 AND ($4 = '' OR session_id = $4) RETURNING id",
+        [userId, preference, value, session]
+      );
+      await db.query(
+        "INSERT INTO nope_events (user_id, event_type, payload) VALUES ($1, $2, $3)",
+        [userId, "PREFERENCE_REMOVED", JSON.stringify({preference, value, session_id: session || null, removed_count: deleted.rowCount || 0})]
+      );
+      return res.json(jsonRpc(id, {
+        content: [{ type:"text", text: JSON.stringify({ status:"REMOVED", removed_count: deleted.rowCount || 0, preference, value }) }],
         isError:false
       }));
     }

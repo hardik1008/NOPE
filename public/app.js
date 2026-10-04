@@ -70,7 +70,7 @@ function injectIntelligenceUI(){
   .choiceSheet{position:relative}
   .productShadow{position:absolute;width:145px;height:18px;border-radius:50%;background:#0002;filter:blur(8px);bottom:18px}
   .productBadge{position:absolute;top:10px;left:10px;background:#ffffffe8;border:1px solid #fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;z-index:4}
-  .heartBtn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffffe8;font-size:15px;cursor:pointer;z-index:4}
+  .heartBtn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffffe8;font-size:15px;cursor:pointer;z-index:4;transition:transform .15s ease,background .15s ease}.heartBtn:hover{transform:scale(1.08)}.heartBtn.saved{background:#111;color:#fff}
   .swatches{display:flex;gap:7px;margin:10px 2px 0}
   .swatch{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d0d5dd;cursor:pointer}
   .swatch.active{box-shadow:0 0 0 2px #111}
@@ -138,27 +138,33 @@ function injectIntelligenceUI(){
 }
 function sessionId(){let s=localStorage.getItem("nope_session_id");if(!s){s="sess_"+crypto.randomUUID();localStorage.setItem("nope_session_id",s)}return s}
 const nudgeState={shown:0,answered:0,lastAt:0,startedAt:Date.now(),busy:false};
-function smartNudgePlan(){const fast=new URLSearchParams(location.search).get("nudges")==="fast";return fast?[3500,7500,11500]:[28000,70000,125000,190000]}
+function smartNudgePlan(){return [10000,20000,30000,40000,50000,60000]}
 function maybeShowNudge(trigger="time",context={}){
-  if(nudgeState.busy||nudgeState.shown>=4)return;
-  const plan=smartNudgePlan(),elapsed=Date.now()-nudgeState.startedAt,next=plan[nudgeState.shown];
-  if(elapsed<next)return;
+  if(nudgeState.busy||nudgeState.shown>=6)return;
+  if(document.hidden)return;
   if(document.querySelector(".choiceModal"))return;
+  const elapsed=Date.now()-nudgeState.startedAt,next=nudgeState.shown*10000+10000;
+  if(elapsed<next)return;
   const questions=[
-    {icon:"✦",q:"Tiny hunch… what feels more like you?",opts:[["Easy & relaxed",["fit/style","prefer relaxed and comfortable"]],["Clean & sharp",["style","prefer clean and understated"]]]},
-    {icon:"☁",q:"Quick vibe check — what should NØPE bring you more often?",opts:[["Quiet colours",["colour direction","prefer quieter colours"]],["A little bold",["colour direction","prefer bolder colours"]],["Surprise me",["discovery openness","open to variety"]]]},
-    {icon:"◌",q:"No pressure: what matters more today?",opts:[["Comfort first",["priority","comfort first"]],["Looks first",["priority","style first"]],["Both, please",["priority","balanced comfort and style"]]]},
-    {icon:"♡",q:"One tiny last thing — would you wear your favourite pick often?",opts:[["All the time",["usage","prefer versatile everyday pieces"]],["Only for occasions",["usage","prefer occasion pieces"]]]}
+    {icon:"✦",q:"Tiny style gossip — what feels more like you?",opts:[["Comfy wins",["fit/style","prefer relaxed and comfortable"]],["Sharp wins",["style","prefer clean and understated"]]]},
+    {icon:"☁",q:"Be honest… should NØPE keep colours quiet or bring a little drama?",opts:[["Keep it quiet",["colour direction","prefer quieter colours"]],["Bring the drama",["colour direction","prefer bolder colours"]],["Surprise me",["discovery openness","open to variety"]]]},
+    {icon:"◌",q:"NØPE is nosy for 4 seconds: what matters more today?",opts:[["Comfort",["priority","comfort first"]],["Looking good",["priority","style first"]],["Both",["priority","balanced comfort and style"]]]},
+    {icon:"♡",q:"Tiny question before NØPE disappears… would you actually wear your favourite a lot?",opts:[["On repeat",["usage","prefer versatile everyday pieces"]],["Special occasions",["usage","prefer occasion pieces"]]]},
+    {icon:"✧",q:"Should NØPE play it safe, or surprise you sometimes?",opts:[["Stay relevant",["discovery openness","prefer relevant familiar choices"]],["Surprise me",["discovery openness","open to tasteful discovery"]]]},
+    {icon:"⌁",q:"Last tiny one: what makes you keep looking at a product?",opts:[["The feel",["shopping cue","material and comfort drive interest"]],["The look",["shopping cue","visual style drives interest"]]]}
   ];
-  const q=questions[nudgeState.shown];nudgeState.busy=true;nudgeState.shown++;
-  const el=document.createElement("div");el.className="microNudge";el.innerHTML='<div class="microBubble"><div class="microTop"><span class="microDot">'+q.icon+'</span><span class="microKicker">NØPE is curious</span><button class="microClose" aria-label="Dismiss">×</button></div><div class="microQuestion">'+q.q+'</div><div class="microOptions">'+q.opts.map((o,i)=>'<button class="microOption" data-opt="'+i+'">'+o[0]+'</button>').join("")+'</div><div class="microTimer"><i></i></div></div>';
+  const q=questions[nudgeState.shown];if(!q)return;
+  nudgeState.busy=true;nudgeState.shown++;
+  const el=document.createElement("div");el.className="microNudge";el.innerHTML='<div class="microBubble"><div class="microTop"><span class="microDot">'+q.icon+'</span><span class="microKicker">NØPE is curious · 4 sec</span><button class="microClose" aria-label="Dismiss">×</button></div><div class="microQuestion">'+q.q+'</div><div class="microOptions">'+q.opts.map((o,i)=>'<button class="microOption" data-opt="'+i+'">'+o[0]+'</button>').join("")+'</div><div class="microTimer"><i></i></div></div>';
   document.body.appendChild(el);requestAnimationFrame(()=>el.classList.add("show"));
   let timer=setTimeout(()=>dismiss(),4200);
-  function dismiss(){clearTimeout(timer);el.classList.remove("show");setTimeout(()=>el.remove(),220);nudgeState.busy=false;if(nudgeState.shown<smartNudgePlan().length)setTimeout(()=>maybeShowNudge("time"),900)}
+  function dismiss(){clearTimeout(timer);el.classList.remove("show");setTimeout(()=>el.remove(),220);nudgeState.busy=false;}
   el.querySelector(".microClose").onclick=()=>{recordBehaviorSignal("micro-question dismissal",q.q,"User chose not to answer a lightweight preference question","micro_nudge_dismiss","low");dismiss()};
   el.querySelectorAll("[data-opt]").forEach(btn=>btn.onclick=async()=>{const chosen=q.opts[Number(btn.dataset.opt)],k=chosen[1][0],v=chosen[1][1];nudgeState.answered++;await recordSignal(k,v,"User voluntarily answered a lightweight NØPE preference question","ui","micro_nudge","medium");showLearnedMemory(v,"User chose a lightweight preference prompt");dismiss()});
 }
-function startMicroNudges(){setTimeout(()=>maybeShowNudge("time"),smartNudgePlan()[0]);}
+function startMicroNudges(){
+  if(!window.__nopeNudgeTimer)window.__nopeNudgeTimer=setInterval(()=>maybeShowNudge("time"),1000);
+}
 function proofStep(name,detail){
   const ids={ui:"proofUI",db:"proofDB",backend:"proofBackend",update:"proofUIUpdate"},order=["ui","db","backend","update"],idx=order.indexOf(name);
   order.forEach((k,i)=>{const el=document.getElementById(ids[k]);if(el){el.classList.toggle("active",i===idx);el.classList.toggle("done",i<idx)}});
@@ -322,7 +328,7 @@ injectIntelligenceUI();
 const resetDemoBtn=document.getElementById("resetDemo");
 if(resetDemoBtn)resetDemoBtn.onclick=async()=>{
   resetDemoBtn.disabled=true;resetDemoBtn.textContent="Resetting…";
-  try{const oldSession=sessionId();await fetch("/api/demo/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:"demo-user"})});localStorage.removeItem("nope_session_id");sessionStorage.removeItem("nope_open_signal");localStorage.removeItem("nope_taste_"+oldSession);location.reload();}
+  try{const oldSession=sessionId();await fetch("/api/demo/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:"demo-user"})});localStorage.removeItem("nope_session_id");localStorage.removeItem("nope_saved_products");sessionStorage.removeItem("nope_open_signal");localStorage.removeItem("nope_taste_"+oldSession);location.reload();}
   catch(e){resetDemoBtn.disabled=false;resetDemoBtn.textContent="↺ Reset";setStatus("Reset failed: "+e.message,"err")}
 };
 const C={
@@ -334,6 +340,9 @@ dark:["#e4e0dd","#7d8789","#394449","#14191c","#7a4b46","#b68b54"],
 bright:["#f4e2c4","#e8c84a","#ee713f","#d74668","#5fae9d","#5d73c7"],
 neutral:["#f2f0ea","#d3d0c8","#a5aaa8","#6d7374","#4d5961","#b9a28a"]
 };
+const savedProducts=new Set();
+try{JSON.parse(localStorage.getItem("nope_saved_products")||"[]").forEach(id=>savedProducts.add(id))}catch(e){}
+function persistSavedProducts(){localStorage.setItem("nope_saved_products",JSON.stringify([...savedProducts]))}
 const SHOP_PRODUCTS=[
 {id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",shape:"executive",colors:C.blue},
 {id:"linen-resort",name:"Linen Blend Resort Shirt",price:2499,meta:"NØPE Atelier · Linen blend · Relaxed · Wedding",shape:"resort",colors:C.linen},
@@ -447,9 +456,9 @@ function openProductDetail(p){
  box.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-size]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("size interest",b.dataset.size,"User selected a size while exploring","variation","low");learnTaste(p,.25,"size")});
 }
 function productCard(p,i){
- const v=visualFor(p),badge=i===0?"NØPE is testing this":"",cs=p.colors||C.neutral;
+ const v=visualFor(p),badge=i===0?"NØPE is testing this":"",cs=p.colors||C.neutral,saved=savedProducts.has(p.id);
  const sw=cs.map((c,j)=>'<button class="swatch '+(j===0?"active":"")+'" style="background:'+c+'" data-colour="'+i+'" data-color-index="'+j+'" aria-label="Colour '+(j+1)+'"></button>').join("");
- return '<div class="shopProduct" data-product="'+p.id+'"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+'" data-visual="'+i+'">'+productArtwork(p,cs[0],cs[3])+'<span class="productBadge">'+badge+'</span><button class="heartBtn" data-save="'+i+'" aria-label="Save">♡</button><span class="productShadow"></span></div><div class="swatches">'+sw+'</div><div class="productMetaRow"><button class="productName productOpen" data-detail="'+i+'">'+p.name+'</button><span class="productPrice">₹'+p.price+'</span></div><div class="cardActions"><button class="quickBtn" data-detail="'+i+'">Explore</button><button class="quickBtn primary" data-match="'+i+'">Add</button></div><button class="nopeReject" data-reject="'+i+'" aria-label="Skip">Skip this</button></div>';
+ return '<div class="shopProduct" data-product="'+p.id+'"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+'" data-visual="'+i+'">'+productArtwork(p,cs[0],cs[3])+'<span class="productBadge">'+badge+'</span><button class="heartBtn '+(saved?"saved":"")+'" data-save="'+i+'" aria-label="'+(saved?"Unfavourite":"Favourite")+'">'+(saved?"♥":"♡")+'</button><span class="productShadow"></span></div><div class="swatches">'+sw+'</div><div class="productMetaRow"><button class="productName productOpen" data-detail="'+i+'">'+p.name+'</button><span class="productPrice">₹'+p.price+'</span></div><div class="cardActions"><button class="quickBtn" data-detail="'+i+'">Explore</button><button class="quickBtn primary" data-match="'+i+'">Add</button></div><button class="nopeReject" data-reject="'+i+'" aria-label="Skip">Skip this</button></div>';
 }
 function adaptShop(items){
  const ranked=[...items].sort((a,b)=>productScore(b,0)-productScore(a,0));
@@ -459,7 +468,7 @@ function renderShopCore(items){
  const root=$("shopProducts");root.innerHTML=items.map(productCard).join("");
  root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("add intent",p.name,"User chose to move this product toward purchase","add_click","medium");learnTaste(p,2,"add to bag");addToCart(p,b);});
  root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
- root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";const p=items[i];recordBehaviorSignal("save affinity",p.name,"User saved this product","save","medium");learnTaste(p,1.4,"save")});
+ root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=items[i];if(!p)return;const isSaved=savedProducts.has(p.id);if(isSaved){savedProducts.delete(p.id);b.textContent="♡";b.classList.remove("saved");b.setAttribute("aria-label","Favourite");persistSavedProducts();await mcp("remove_preference",{user_id:"demo-user",preference:"save affinity",value:p.name,session_id:sessionId()});recordBehaviorSignal("unsave action",p.name,"User unfavourited this product","unsave_click","low");setStatus(p.name+" removed from favourites.","ok");await refreshSessionView();}else{savedProducts.add(p.id);b.textContent="♥";b.classList.add("saved");b.setAttribute("aria-label","Unfavourite");persistSavedProducts();await recordSignal("save affinity",p.name,"User saved this product","ui","save","medium");learnTaste(p,1.4,"save");setStatus(p.name+" saved to favourites.","ok")}});
  root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.colour)],card=b.closest(".shopProduct"),visual=card?.querySelector(".visualProduct"),idx=Number(b.dataset.colorIndex),c=p.colors?.[idx]||b.style.background;card?.querySelectorAll("[data-colour]").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(visual){visual.style.setProperty("--cloth1",c);visual.style.setProperty("--cloth2",p.colors?.[(idx+1)%p.colors.length]||c);const svg=visual.querySelector(".garmentSvg");if(svg){const temp=document.createElement("div");temp.innerHTML=productArtwork(p,c,p.colors?.[(idx+3)%p.colors.length]||c);svg.replaceWith(temp.firstChild)}}recordBehaviorSignal("colour exploration",p.name,"User explored colour "+(idx+1)+" of "+(p.colors?.length||6),"variation","low");learnTaste(p,.45,"colour")});
  installRecommendationActions(items);installBehavioralLearning(items);
 }
