@@ -12,8 +12,8 @@ function injectIntelligenceUI(){
   if(!store||document.getElementById("nopeIntel"))return;
   const s=document.createElement("style");
   s.textContent=`
-  #nopeIntel{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:18px}
-  .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fbfcfe;padding:16px}
+  #nopeIntel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fff;padding:15px}
   .intelHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .intelTitle{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
   .intelLive{font-size:10px;font-weight:850;padding:5px 8px;border-radius:999px;background:#111;color:#fff}
@@ -35,10 +35,16 @@ function injectIntelligenceUI(){
   .sessionMemory{margin-top:12px;padding:11px;border:1px solid #eaecf0;border-radius:12px;background:#fff}
   .prefGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .prefLabel{font-size:9px;font-weight:900;letter-spacing:.08em;color:#98a2b3;margin-bottom:6px}
-  .prefItem{padding:7px 0;border-bottom:1px solid #f0f1f3}
+  .prefItem{padding:8px 0;border-bottom:1px solid #f0f1f3}
   .prefMain{font-size:11px;font-weight:800;display:block}
   .prefMeta{font-size:9px;color:#98a2b3}
   .prefReason{font-size:9px;color:#667085;margin-top:2px}
+  .sourceBadge{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:999px;background:#f2f4f7;color:#667085;font-size:8px;font-weight:800}
+  .memoryHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .sessionIdMini{font-size:8px;color:#98a2b3}
+  .memorySection{margin-top:9px}
+  .memorySectionTitle{font-size:9px;font-weight:900;letter-spacing:.07em;color:#98a2b3}
+  .learningToast{position:fixed;right:18px;bottom:18px;z-index:9998;background:#111;color:#fff;border-radius:12px;padding:11px 14px;font-size:11px;font-weight:750;box-shadow:0 12px 35px #0003}
   .emptyMemory{font-size:10px;color:#98a2b3;line-height:1.4}
   .sessionFoot{font-size:9px;color:#98a2b3;margin-top:8px}
   .learningHint{font-size:10px;color:#667085;margin-top:8px;line-height:1.4}
@@ -95,7 +101,7 @@ async function refreshSessionView(){
       else if(/budget|occasion|fit|material|color/.test(text))groups.hard.push(item);
       else groups.like.push(item);
     });
-    root.innerHTML='<div class="prefGrid"><div><div class="prefLabel">WHAT I SHOULD AVOID</div>'+(groups.avoid.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div><div><div class="prefLabel">WHAT YOU SEEM TO LIKE</div>'+(groups.like.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div></div><div class="sessionFoot">Session memory · '+prefs.length+' signals · source-aware</div>';
+    const sourceCounts={voice:0,text:0,ui:0}; prefs.forEach(p=>{const s=String(p.source||"agent").toLowerCase(); if(s==="voice")sourceCounts.voice++; else if(s==="text")sourceCounts.text++; else if(s==="ui")sourceCounts.ui++;}); root.innerHTML='<div class="memoryHeader"><div><div class="prefLabel">THIS SESSION</div><div style="font-size:12px;font-weight:850">NØPE is building a decision profile</div></div><div class="sessionIdMini">'+sessionId().slice(0,15)+'…</div></div><div class="prefGrid"><div><div class="prefLabel">AVOID / REJECTED</div>'+(groups.avoid.join("")||'<div class="emptyMemory">Nothing rejected yet</div>')+'</div><div><div class="prefLabel">LIKES / CONSTRAINTS</div>'+(groups.like.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div></div><div class="memorySection"><div class="memorySectionTitle">SIGNALS BY SOURCE</div><div class="understood" style="margin-top:6px"><span class="signal">🎙 Voice · '+sourceCounts.voice+'</span><span class="signal">⌨ Text · '+sourceCounts.text+'</span><span class="signal">👆 UI · '+sourceCounts.ui+'</span></div></div><div class="sessionFoot">Stored for this session · '+prefs.length+' signals · used in ranking</div>';
   }catch(e){console.warn(e)}
 }
 function captureIntentSignals(text,source){
@@ -130,6 +136,9 @@ function showLearnedMemory(pref,reason){
   const m=document.getElementById("memoryLive"), c=document.getElementById("memoryConfidence");
   if(m)m.innerHTML='<b>LEARNED TODAY</b><br>Dislike: '+pref+'<br>Reason: “'+reason+'”<br><span style="color:#667085">Temporary context · medium confidence</span>';
   if(c){c.textContent="NEW SIGNAL · MEDIUM";c.className="signal good"}
+  const old=document.querySelector(".learningToast");if(old)old.remove();
+  const toast=document.createElement("div");toast.className="learningToast";toast.textContent="Preference updated · NØPE will use this next";document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),2600);
 }
 function explainProduct(p){
   const box=document.createElement("div");
@@ -141,16 +150,22 @@ function installRecommendationActions(items){
   document.querySelectorAll("[data-why]").forEach(b=>b.onclick=()=>explainProduct(items[Number(b.dataset.why)]||items[0]));
   document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{
     const p=items[Number(b.dataset.reject)]||items[0];
-    const reason=b.dataset.reason||"too formal";
+    const raw=((p.style||"")+" "+(p.tags||[]).join(" ")).toLowerCase();
+    const inferred=raw.includes("formal")||raw.includes("structured")||raw.includes("elegant")
+      ? {preference:"formality",value:"avoid overly formal / structured",reason:"Implicit UI rejection of a formal-looking recommendation"}
+      : raw.includes("shiny")||raw.includes("party")
+      ? {preference:"finish",value:"avoid shiny / party finishes",reason:"Implicit UI rejection of a shiny or party-style recommendation"}
+      : {preference:"style",value:"avoid this style direction",reason:"Implicit UI rejection — NØPE inferred a negative style signal from the skipped recommendation"};
     try{
-      stage("Rejection received","NØPE is turning your “Nope” into a preference signal.","nMemory");
-      const saved=await mcp("record_preference",{user_id:"demo-user",preference:"formality",value:"avoid overly formal",reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
+      stage("Preference signal detected","You said “Not my vibe”. NØPE inferred what to avoid without asking another question.","nMemory");
+      const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
-      showLearnedMemory("avoid overly formal",reason);
-      stage("Memory updated","Formality negative signal saved. Searching again with the new constraint.","nCatalog");
-      const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:"shiny formal"});
+      showLearnedMemory(inferred.value,inferred.reason);
+      stage("Memory updated","The inferred negative signal is now part of this session and will affect the next ranking.","nCatalog");
+      const avoidTerms=inferred.preference==="formality"?"formal":inferred.preference==="finish"?"shiny":"formal,shiny";
+      const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:avoidTerms});
       const products=found.results||[];
-      const ranked=products.length?(await mcp("rank_products",{products,preferences:[{preference:"formality",value:"avoid overly formal"}],intent:transcript})).results||products:products;
+      const ranked=products.length?(await mcp("rank_products",{products,preferences:[{preference:inferred.preference,value:inferred.value}],intent:transcript})).results||products:products;
       renderShopMatches(ranked);
       updateIntelligence(transcript,{count:products.length},ranked.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
@@ -194,7 +209,7 @@ function renderShopMatches(items){
  const root=$("shopProducts");
  const tones=["#243447","#d9c3a5","#365b75","#202124","#eee5d0","#8b4b35","#38454b","#f4f4f1"];
  const brands=["NØPE Atelier","Casa Linen","Urban Loom","Sunday Club","Monarch","NØPE Basics"];
- root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'" data-reason="Too formal">✕ Nope — too formal</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
+ root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'">✕ Not my vibe</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
  root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});installRecommendationActions(items);
 }
 async function mcp(name,args){
