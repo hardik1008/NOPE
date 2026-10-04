@@ -58,8 +58,16 @@ function injectIntelligenceUI(){
   .shopProduct{position:relative;border:0;border-radius:22px;background:transparent;padding:0;overflow:visible;transition:transform .25s ease}.shopProduct:hover{transform:translateY(-5px)}
   .shopProduct:hover{transform:translateY(-4px);box-shadow:0 18px 45px #11111112;border-color:#d8dce3}
   .visualProduct{height:390px;border-radius:20px;position:relative;overflow:hidden;background:linear-gradient(145deg,var(--bg1),var(--bg2));display:grid;place-items:center;cursor:pointer;transition:filter .25s ease,transform .25s ease}.shopProduct:hover .visualProduct{filter:saturate(1.08)}
-  .visualProduct:before{content:"";position:absolute;width:155px;height:205px;border-radius:58% 58% 24% 24%;background:linear-gradient(135deg,var(--cloth1),var(--cloth2));box-shadow:inset -18px -10px 25px #0002, inset 13px 10px 18px #fff3;transform:rotate(-1deg);top:27px}
-  .visualProduct:after{content:"";position:absolute;width:58px;height:48px;border-radius:0 0 28px 28px;border-bottom:7px solid #0002;top:24px;background:linear-gradient(90deg,transparent 40%,#fff4 41%,#fff4 44%,transparent 45%);z-index:2}
+  .visualProduct:before,.visualProduct:after{display:none}
+  .garmentSvg{width:76%;height:88%;display:block;filter:drop-shadow(0 22px 18px #1114);transition:transform .25s ease,filter .25s ease}
+  .shopProduct:hover .garmentSvg{transform:translateY(-5px) rotate(-1deg);filter:drop-shadow(0 28px 22px #1115)}
+  .productOpen{border:0;background:none;padding:0;text-align:left;cursor:pointer}
+  .cardActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .productName.productOpen:hover{text-decoration:underline;text-underline-offset:3px}
+  .modalClose{position:absolute;right:14px;top:14px;width:36px;height:36px;border:0;border-radius:50%;background:#f4f5f7;font-size:22px;line-height:1;cursor:pointer;z-index:3}
+  .detailVisual{overflow:hidden}.detailVisual .garmentSvg{height:92%;width:82%}
+  .detailCopy{font-size:11px;color:#667085;line-height:1.5;margin-top:7px}
+  .choiceSheet{position:relative}
   .productShadow{position:absolute;width:145px;height:18px;border-radius:50%;background:#0002;filter:blur(8px);bottom:18px}
   .productBadge{position:absolute;top:10px;left:10px;background:#ffffffe8;border:1px solid #fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;z-index:4}
   .heartBtn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffffe8;font-size:15px;cursor:pointer;z-index:4}
@@ -253,29 +261,43 @@ function installGuidedDemo(){
   };
 }
 injectIntelligenceUI();
+const C={
+linen:["#efe2c7","#d7c09a","#879f82","#496d64","#c76f52","#354b5c"],
+blue:["#dce8f2","#93b6cf","#466f91","#223b57","#d19a68","#6e7d89"],
+earth:["#ead9c5","#c69b70","#8b684d","#4f4036","#a95f42","#75835a"],
+pastel:["#f1dfe2","#c8d8e8","#d9b8ce","#a7c8a1","#e6c889","#8994bd"],
+dark:["#e4e0dd","#7d8789","#394449","#14191c","#7a4b46","#b68b54"],
+bright:["#f4e2c4","#e8c84a","#ee713f","#d74668","#5fae9d","#5d73c7"],
+neutral:["#f2f0ea","#d3d0c8","#a5aaa8","#6d7374","#4d5961","#b9a28a"]
+};
 const SHOP_PRODUCTS=[
-{id:"linen-resort",name:"Linen Blend Resort Shirt",price:2499,emoji:"👕",meta:"NØPE Atelier · Linen blend · Relaxed · Wedding"},
-{id:"textured-oxford",name:"Textured Oxford Casual Shirt",price:2299,emoji:"👔",meta:"Textured cotton · Smart casual"},
-{id:"cuban-collar",name:"Cotton Cuban Collar Shirt",price:1999,emoji:"🧥",meta:"Cotton · Relaxed · Easy"},
-{id:"relaxed-linen",name:"Relaxed Linen Shirt",price:2399,emoji:"👕",meta:"Linen · Airy · Classy"},
-{id:"navy-oxford",name:"Navy Oxford Shirt",price:2199,emoji:"👔",meta:"Oxford · Clean · Versatile"},
-{id:"sand-cuban",name:"Sand Cuban Collar",price:1899,emoji:"🧥",meta:"Cotton · Casual · Youthful"}
+{id:"linen-resort",name:"Linen Blend Resort Shirt",price:2499,meta:"NØPE Atelier · Linen blend · Relaxed · Wedding",shape:"resort",colors:C.linen},
+{id:"textured-oxford",name:"Textured Oxford Casual Shirt",price:2299,meta:"Textured cotton · Smart casual",shape:"oxford",colors:C.blue},
+{id:"cuban-collar",name:"Cotton Cuban Collar Shirt",price:1999,meta:"Cotton · Relaxed · Easy",shape:"cuban",colors:C.earth},
+{id:"relaxed-linen",name:"Relaxed Linen Shirt",price:2399,meta:"Linen · Airy · Classy",shape:"linen",colors:C.pastel},
+{id:"navy-oxford",name:"Navy Oxford Shirt",price:2199,meta:"Oxford · Clean · Versatile",shape:"formal",colors:C.blue},
+{id:"sand-cuban",name:"Sand Cuban Collar",price:1899,meta:"Cotton · Casual · Youthful",shape:"boxy",colors:C.earth},
+{id:"camp-collar",name:"Camp Collar Resort Shirt",price:1899,meta:"Sunday Club · Printed · Relaxed",shape:"camp",colors:C.bright},
+{id:"sage-linen",name:"Sage Linen Cuban Shirt",price:2499,meta:"Casa Linen · Linen · Wedding",shape:"mandarin",colors:C.linen},
+{id:"navy-check",name:"Navy Micro-Check Shirt",price:2199,meta:"NØPE Atelier · Clean · Smart casual",shape:"check",colors:C.blue},
+{id:"black-camp",name:"Black Textured Camp Shirt",price:2099,meta:"Urban Loom · Textured · Stylish",shape:"texture",colors:C.dark},
+{id:"ivory-mandarin",name:"Ivory Mandarin Collar Shirt",price:2399,meta:"Monarch · Minimal · Festive",shape:"band",colors:C.neutral},
+{id:"rust-overshirt",name:"Rust Corduroy Overshirt",price:2799,meta:"Sunday Club · Corduroy · Layering",shape:"overshirt",colors:C.earth},
+{id:"performance-polo",name:"Charcoal Performance Polo",price:1599,meta:"NØPE Sport · Stretch · Breathable",shape:"polo",colors:C.dark},
+{id:"minimal-tee",name:"White Minimal Oversized Tee",price:999,meta:"NØPE Basics · Oversized · Minimal",shape:"tee",colors:C.neutral},
+{id:"black-satin",name:"Black Satin Night Shirt",price:2199,meta:"After Dark · Satin · Shiny",shape:"satin",colors:C.dark},
+{id:"neon-lime",name:"Lime Statement Camp Shirt",price:1799,meta:"After Dark · Neon · Loud",shape:"neon",colors:C.bright},
+{id:"floral-punch",name:"Tropical Floral Shirt",price:1999,meta:"Sunday Club · Floral · Loud",shape:"floral",colors:C.bright},
+{id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",shape:"executive",colors:C.blue},
+{id:"skinny-white",name:"Sharp Slim White Shirt",price:1899,meta:"Monarch · Fitted · Formal",shape:"slim",colors:C.neutral},
+{id:"purple-satin",name:"Purple Gloss Party Shirt",price:2399,meta:"After Dark · Gloss · Party",shape:"gloss",colors:C.pastel},
+{id:"orange-pop",name:"Orange Pop Cuban Shirt",price:1699,meta:"Weekend · Orange · Bold",shape:"orange",colors:C.bright},
+{id:"grey-basic",name:"Grey Basic Button Shirt",price:1399,meta:"NØPE Basics · Plain · Everyday",shape:"basic",colors:C.neutral},
+{id:"baggy-denim",name:"Washed Denim Overshirt",price:2499,meta:"Urban Loom · Denim · Oversized",shape:"denim",colors:C.blue},
+{id:"yellow-check",name:"Yellow Micro Check Shirt",price:1899,meta:"Weekend · Check · Bright",shape:"yellowcheck",colors:C.bright},
+{id:"maroon-mandarin",name:"Maroon Mandarin Shirt",price:2399,meta:"Monarch · Festive · Bold",shape:"maroon",colors:C.dark},
+{id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",shape:"olive",colors:C.linen}
 ];
-SHOP_PRODUCTS.push({id:"camp-collar",name:"Camp Collar Resort Shirt",price:1899,emoji:"👕",meta:"Sunday Club · Printed · Relaxed"}); SHOP_PRODUCTS.push({id:"sage-linen",name:"Sage Linen Cuban Shirt",price:2499,emoji:"👕",meta:"Casa Linen · Linen · Wedding"}); SHOP_PRODUCTS.push({id:"navy-check",name:"Navy Micro-Check Shirt",price:2199,emoji:"👔",meta:"NØPE Atelier · Clean · Smart casual"}); SHOP_PRODUCTS.push({id:"black-camp",name:"Black Textured Camp Shirt",price:2099,emoji:"👕",meta:"Urban Loom · Textured · Stylish"}); SHOP_PRODUCTS.push({id:"ivory-mandarin",name:"Ivory Mandarin Collar Shirt",price:2399,emoji:"👔",meta:"Monarch · Minimal · Festive"}); SHOP_PRODUCTS.push({id:"rust-overshirt",name:"Rust Corduroy Overshirt",price:2799,emoji:"🧥",meta:"Sunday Club · Corduroy · Layering"}); SHOP_PRODUCTS.push({id:"performance-polo",name:"Charcoal Performance Polo",price:1599,emoji:"👕",meta:"NØPE Sport · Stretch · Breathable"}); SHOP_PRODUCTS.push({id:"minimal-tee",name:"White Minimal Oversized Tee",price:999,emoji:"👕",meta:"NØPE Basics · Oversized · Minimal"});
-SHOP_PRODUCTS.push(
-{id:"black-satin",name:"Black Satin Night Shirt",price:2199,meta:"After Dark · Satin · Shiny",visual:["#efe9e7","#cfc5c1","#161616","#050505"]},
-{id:"neon-lime",name:"Lime Statement Camp Shirt",price:1799,meta:"After Dark · Neon · Loud",visual:["#e8f3d0","#cce8a2","#b6df22","#6d8d08"]},
-{id:"floral-punch",name:"Tropical Floral Shirt",price:1999,meta:"Sunday Club · Floral · Loud",visual:["#f4d8dc","#f6e6b8","#d33b56","#7b1f42"]},
-{id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",visual:["#e5ebf3","#d4dce8","#49617c","#26384e"]},
-{id:"skinny-white",name:"Sharp Slim White Shirt",price:1899,meta:"Monarch · Fitted · Formal",visual:["#f5f5f1","#e2e2dc","#f6f4ed","#b9b6ac"]},
-{id:"purple-satin",name:"Purple Gloss Party Shirt",price:2399,meta:"After Dark · Gloss · Party",visual:["#eadcf2","#d5c2e1","#8d4bb2","#4a185f"]},
-{id:"orange-pop",name:"Orange Pop Cuban Shirt",price:1699,meta:"Weekend · Orange · Bold",visual:["#f5ded0","#f0c4aa","#ef6c2f","#a93c16"]},
-{id:"grey-basic",name:"Grey Basic Button Shirt",price:1399,meta:"NØPE Basics · Plain · Everyday",visual:["#ececeb","#d9d9d7","#8b8d8c","#5f6262"]},
-{id:"baggy-denim",name:"Washed Denim Overshirt",price:2499,meta:"Urban Loom · Denim · Oversized",visual:["#dce8ee","#c4d8e3","#668fa8","#385e76"]},
-{id:"yellow-check",name:"Yellow Micro Check Shirt",price:1899,meta:"Weekend · Check · Bright",visual:["#f6edc8","#e8dda6","#d7b93f","#89721a"]},
-{id:"maroon-mandarin",name:"Maroon Mandarin Shirt",price:2399,meta:"Monarch · Festive · Bold",visual:["#ead9d8","#dcc0c0","#8b3035","#4d161d"]},
-{id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",visual:["#e1e8d7","#cbd7bd","#7c8d54","#46542f"]}
-);
 let cart=[], recorder=null, chunks=[], recording=false, transcript="";
 const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
 
@@ -314,18 +336,58 @@ function showTastePulse(trait,weight,reason){
   const labels={relaxed:"easy, relaxed pieces",fitted:"sharper fits",minimal:"cleaner looks",expressive:"more expressive pieces",shiny:"high-shine finishes","bold-color":"bolder colour","muted-color":"quieter colour",linen:"linen",occasion:"occasion-ready pieces",everyday:"everyday pieces",cotton:"cotton",corduroy:"texture"};
   dock.textContent=(weight<0?"NØPE is moving away from ":"NØPE is getting warmer on ")+(labels[trait]||trait)+" · testing the next few choices";
 }
-function visualFor(p){const x=p.visual||["#eceff1","#d9dde2","#52606b","#252d32"];return {bg1:x[0],bg2:x[1],c1:x[2],c2:x[3]}}
+function visualFor(p){const cs=p.colors||C.neutral;return {bg1:cs[0],bg2:cs[1],c1:cs[2],c2:cs[3]}}
+function productArtwork(p,color,accent){
+ const a=color||p.colors?.[2]||"#52606b",b=accent||p.colors?.[3]||"#252d32",s=p.shape||"basic";
+ const common='fill="'+a+'" stroke="'+b+'" stroke-width="3" stroke-linejoin="round"';
+ const line=(x1,y1,x2,y2)=>'<path d="M'+x1+' '+y1+' L'+x2+' '+y2+'" stroke="'+b+'" stroke-width="3" fill="none" stroke-linecap="round"/>';
+ const map={
+ resort:'<path '+common+' d="M72 70L126 38L151 72L177 38L228 70L206 125L190 112L190 330L110 330L110 112L94 125Z"/><path d="M126 38L150 82L177 38" fill="none" stroke="'+b+'" stroke-width="7"/>'+line(150,82,150,315),
+ oxford:'<path '+common+' d="M88 42L130 26L150 48L170 26L212 42L239 112L207 130L194 92L194 340L106 340L106 92L93 130L61 112Z"/><path d="M130 26L150 48L170 26" fill="none" stroke="'+b+'" stroke-width="5"/>'+line(150,48,150,340)+'<circle cx="150" cy="104" r="4" fill="'+b+'"/><circle cx="150" cy="142" r="4" fill="'+b+'"/><circle cx="150" cy="180" r="4" fill="'+b+'"/>',
+ cuban:'<path '+common+' d="M86 68L125 38L150 62L175 38L214 68L235 118L205 136L194 112L190 330L110 330L106 112L95 136L65 118Z"/><path d="M125 38L150 92L175 38L160 72L150 92L140 72Z" fill="'+a+'" stroke="'+b+'" stroke-width="4"/>'+line(150,92,150,330),
+ linen:'<path '+common+' d="M78 74L121 40L150 64L179 40L222 74L236 118L205 137L191 108L188 338L112 338L109 108L95 137L64 118Z"/><path d="M121 40L150 64L179 40L166 93L134 93Z" fill="'+b+'" stroke="'+b+'"/>'+line(150,64,150,338),
+ formal:'<path '+common+' d="M94 35L130 20L150 44L170 20L206 35L230 105L201 118L191 86L191 342L109 342L109 86L99 118L70 105Z"/><path d="M130 20L150 44L170 20L159 72L141 72Z" fill="#fff9" stroke="'+b+'" stroke-width="3"/>'+line(150,72,150,342),
+ boxy:'<path '+common+' d="M72 76L118 42L150 68L182 42L228 76L247 150L213 163L198 124L198 322L102 322L102 124L87 163L53 150Z"/><path d="M118 42L150 68L182 42L168 100L132 100Z" fill="'+b+'" stroke="'+b+'" stroke-width="3"/>',
+ camp:'<path '+common+' d="M82 72L125 39L150 67L175 39L218 72L239 124L207 141L193 108L190 330L110 330L107 108L93 141L61 124Z"/><path d="M125 39L150 67L175 39L163 88L137 88Z" fill="'+a+'" stroke="'+b+'" stroke-width="5"/>'+line(150,67,150,330),
+ mandarin:'<path '+common+' d="M90 58L129 28L150 50L171 28L210 58L232 114L202 132L191 98L191 334L109 334L109 98L98 132L68 114Z"/><path d="M129 28L150 50L171 28L171 77L129 77Z" fill="'+b+'" stroke="'+b+'"/>'+line(150,50,150,334),
+ check:'<path '+common+' d="M86 60L127 30L150 55L173 30L214 60L236 120L204 138L191 104L191 334L109 334L109 104L96 138L64 120Z"/><path d="M110 120H190M110 160H190M110 200H190M110 240H190M130 100V300M160 100V300M185 100V300" stroke="'+b+'" stroke-width="3" opacity=".55"/>',
+ texture:'<path '+common+' d="M92 54L130 25L150 49L170 25L208 54L238 125L204 141L192 107L190 335L110 335L108 107L96 141L62 125Z"/><path d="M116 95L184 95M116 122L184 122M116 149L184 149M116 176L184 176M116 203L184 203M116 230L184 230M116 257L184 257" stroke="'+b+'" stroke-width="2" opacity=".4"/>',
+ band:'<path '+common+' d="M96 58L131 30L150 52L169 30L204 58L229 117L201 133L190 101L190 337L110 337L110 101L99 133L71 117Z"/><path d="M132 30H168V83H132Z" fill="'+b+'" stroke="'+b+'"/>'+line(150,83,150,337),
+ overshirt:'<path '+common+' d="M78 68L122 31L150 55L178 31L222 68L250 136L214 151L198 108L198 344L102 344L102 108L86 151L50 136Z"/><path d="M122 31L150 55L178 31L168 88L132 88Z" fill="'+a+'" stroke="'+b+'" stroke-width="4"/><rect x="116" y="145" width="28" height="44" rx="3" fill="'+a+'" stroke="'+b+'" stroke-width="3"/><rect x="156" y="145" width="28" height="44" rx="3" fill="'+a+'" stroke="'+b+'" stroke-width="3"/>',
+ polo:'<path '+common+' d="M92 70L128 39L150 61L172 39L208 70L231 124L202 140L190 105L190 332L110 332L110 105L98 140L69 124Z"/><path d="M128 39L150 61L172 39L163 91L137 91Z" fill="#fff9" stroke="'+b+'" stroke-width="4"/><path d="M137 91L150 102L163 91" fill="none" stroke="'+b+'" stroke-width="4"/>',
+ tee:'<path '+common+' d="M101 67L132 43L150 62L168 43L199 67L229 123L196 140L182 109L182 324L118 324L118 109L104 140L71 123Z"/><path d="M132 43L150 62L168 43" fill="none" stroke="'+b+'" stroke-width="6"/><path d="M124 75H176" stroke="'+b+'" stroke-width="3" opacity=".5"/>',
+ satin:'<path '+common+' d="M83 70L124 35L150 60L176 35L217 70L243 126L209 145L195 108L190 332L110 332L105 108L91 145L57 126Z"/><path d="M124 35L150 60L176 35L163 91L137 91Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M116 110L184 300" stroke="#fff8" stroke-width="12" opacity=".45"/><path d="M150 60V332" stroke="#fff6" stroke-width="3"/>',
+ neon:'<path '+common+' d="M79 73L123 35L150 65L177 35L221 73L246 128L211 148L194 107L194 330L106 330L106 107L89 148L54 128Z"/><path d="M123 35L150 65L177 35L165 93L135 93Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M92 180L208 120M90 225L210 165M92 270L210 210" stroke="#fff8" stroke-width="8"/>',
+ floral:'<path '+common+' d="M84 69L126 36L150 61L174 36L216 69L241 124L207 142L193 108L190 332L110 332L107 108L93 142L59 124Z"/><path d="M126 36L150 61L174 36L162 91L138 91Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><g fill="'+b+'"><circle cx="125" cy="140" r="8"/><circle cx="175" cy="165" r="10"/><circle cx="132" cy="210" r="9"/><circle cx="170" cy="260" r="8"/><circle cx="125" cy="285" r="7"/></g>',
+ executive:'<path '+common+' d="M99 29L130 18L150 43L170 18L201 29L223 94L201 108L191 78L191 342L109 342L109 78L99 108L77 94Z"/><path d="M130 18L150 43L170 18L160 68H140Z" fill="#fff" stroke="'+b+'" stroke-width="3"/><path d="M111 106H189" stroke="'+b+'" stroke-width="2"/>'+line(150,68,150,342),
+ slim:'<path '+common+' d="M105 38L134 24L150 45L166 24L195 38L216 101L190 113L181 84L178 340L122 340L119 84L110 113L84 101Z"/><path d="M134 24L150 45L166 24L159 70L141 70Z" fill="#fff" stroke="'+b+'" stroke-width="3"/>'+line(150,70,150,340),
+ gloss:'<path '+common+' d="M77 70L122 34L150 61L178 34L223 70L247 126L210 145L194 106L191 332L109 332L106 106L90 145L53 126Z"/><path d="M122 34L150 61L178 34L165 91L135 91Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M115 115L185 285M125 100L195 270" stroke="#fff8" stroke-width="9" opacity=".45"/>',
+ orange:'<path '+common+' d="M84 72L126 36L150 63L174 36L216 72L241 126L207 143L193 106L190 330L110 330L107 106L93 143L59 126Z"/><path d="M126 36L150 63L174 36L162 92L138 92Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M108 180L192 180M108 220L192 220" stroke="'+b+'" stroke-width="5"/>',
+ basic:'<path '+common+' d="M94 58L129 31L150 52L171 31L206 58L230 116L201 133L190 99L190 337L110 337L110 99L99 133L70 116Z"/><path d="M129 31L150 52L171 31L162 78H138Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/>'+line(150,78,150,337),
+ denim:'<path '+common+' d="M73 70L120 30L150 58L180 30L227 70L255 139L217 155L198 108L198 345L102 345L102 108L83 155L45 139Z"/><path d="M120 30L150 58L180 30L169 90L131 90Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M111 132H145V190H111ZM155 132H189V190H155Z" fill="none" stroke="'+b+'" stroke-width="3"/>',
+ yellowcheck:'<path '+common+' d="M85 65L126 34L150 58L174 34L215 65L239 123L205 140L193 105L190 333L110 333L107 105L95 140L61 123Z"/><path d="M126 34L150 58L174 34L162 88L138 88Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M112 120H188M112 150H188M112 180H188M112 210H188M112 240H188M112 270H188M125 105V310M150 105V310M175 105V310" stroke="'+b+'" stroke-width="2" opacity=".7"/>',
+ maroon:'<path '+common+' d="M90 58L129 28L150 50L171 28L210 58L232 114L202 132L191 98L191 334L109 334L109 98L98 132L68 114Z"/><path d="M129 28L150 50L171 28V78H129Z" fill="'+b+'" stroke="'+b+'"/><path d="M120 105L180 105M120 145L180 145M120 185L180 185" stroke="#fff4" stroke-width="4"/>',
+ olive:'<path '+common+' d="M76 70L121 38L150 64L179 38L224 70L245 126L211 145L194 108L191 335L109 335L106 108L89 145L55 126Z"/><path d="M121 38L150 64L179 38L166 92L134 92Z" fill="'+b+'" stroke="'+b+'" stroke-width="4"/><path d="M115 115L185 300" stroke="#fff4" stroke-width="6"/>'
+ };
+ return '<svg class="garmentSvg" viewBox="0 0 300 390" aria-hidden="true">'+(map[s]||map.basic)+'</svg>';
+}
 function openProductDetail(p){
  const v=visualFor(p),box=document.createElement("div");box.className="choiceModal";
- box.innerHTML='<div class="choiceSheet"><div class="choiceGrid"><div class="detailVisual" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'"></div><div><div class="shopEyebrow">NØPE quick look</div><div class="detailTitle">'+p.name+'</div><div style="font-size:18px;font-weight:900">₹'+p.price+'</div><div style="font-size:11px;color:#667085;line-height:1.5;margin-top:7px">A considered option with an easy, wearable feel.</div><div class="choiceLabel">Colour</div><div class="colorChoices"><button class="swatch active" style="background:'+v.c1+'" data-var="colour"></button><button class="swatch" style="background:'+v.c2+'" data-var="colour"></button><button class="swatch" style="background:#d2ad73" data-var="colour"></button></div><div class="choiceLabel">Feel</div><div class="sizeChoices"><button class="sizeChoice active" data-fit="relaxed">Relaxed</button><button class="sizeChoice" data-fit="regular">Regular</button><button class="sizeChoice" data-fit="fitted">Fitted</button></div><div class="choiceLabel">Size</div><div class="sizeChoices"><button class="sizeChoice" data-size="S">S</button><button class="sizeChoice active" data-size="M">M</button><button class="sizeChoice" data-size="L">L</button><button class="sizeChoice" data-size="XL">XL</button></div><div class="modalFoot"><button class="quickBtn" id="closeChoice">Maybe later</button><button class="quickBtn primary" id="addChoice">Add to bag</button></div></div></div></div>';
- document.body.appendChild(box);box.querySelector("#closeChoice").onclick=()=>{recordBehaviorSignal("detail exit",p.name,"User closed the detail view without adding","detail_exit","low");box.remove()};box.querySelector("#addChoice").onclick=()=>{addToCart(p);learnTaste(p,2.2,"detail add");recordBehaviorSignal("product detail preference",p.name,"User configured a product and kept exploring it","customize","medium");box.remove()};
- box.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-var]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("colour interest",p.name,"User explored a colour variation","variation","low");learnTaste(p,.5,"variation")});
+ const cs=p.colors||C.neutral;
+ box.innerHTML='<div class="choiceSheet"><button class="modalClose" id="closeChoice" aria-label="Close">×</button><div class="choiceGrid"><div class="detailVisual" style="--bg1:'+cs[0]+';--bg2:'+cs[1]+'">'+productArtwork(p,cs[0],cs[3])+'</div><div><div class="shopEyebrow">NØPE quick look</div><div class="detailTitle">'+p.name+'</div><div style="font-size:18px;font-weight:900">₹'+p.price+'</div><div class="detailCopy">Explore it. Change it. NØPE notices.</div><div class="choiceLabel">Colour · '+cs.length+' options</div><div class="colorChoices">'+cs.map((c,j)=>'<button class="swatch '+(j===0?"active":"")+'" style="background:'+c+'" data-var="colour" data-color-index="'+j+'"></button>').join("")+'</div><div class="choiceLabel">Feel</div><div class="sizeChoices"><button class="sizeChoice active" data-fit="relaxed">Relaxed</button><button class="sizeChoice" data-fit="regular">Regular</button><button class="sizeChoice" data-fit="fitted">Fitted</button></div><div class="choiceLabel">Size</div><div class="sizeChoices"><button class="sizeChoice" data-size="S">S</button><button class="sizeChoice active" data-size="M">M</button><button class="sizeChoice" data-size="L">L</button><button class="sizeChoice" data-size="XL">XL</button></div><div class="modalFoot"><button class="quickBtn primary" id="addChoice">Add to bag</button></div></div></div></div>';
+ document.body.appendChild(box);
+ const close=()=>{recordBehaviorSignal("detail exit",p.name,"User closed the product detail view","detail_exit","low");box.remove()};
+ box.querySelector("#closeChoice").onclick=close;
+ box.addEventListener("click",e=>{if(e.target===box)close()});
+ box.querySelector("#addChoice").onclick=()=>{addToCart(p);learnTaste(p,2.2,"detail add");recordBehaviorSignal("product detail preference",p.name,"User configured a product and kept exploring it","customize","medium");box.remove()};
+ box.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-var]").forEach(x=>x.classList.remove("active"));b.classList.add("active");const idx=Number(b.dataset.colorIndex),c=cs[idx],dv=box.querySelector(".detailVisual"),oldSvg=dv.querySelector(".garmentSvg"),temp=document.createElement("div");dv.style.setProperty("--bg1",c);dv.style.setProperty("--bg2",cs[(idx+1)%cs.length]);temp.innerHTML=productArtwork(p,c,cs[(idx+3)%cs.length]);oldSvg.replaceWith(temp.firstChild);recordBehaviorSignal("colour interest",p.name,"User explored colour "+(idx+1)+" of "+cs.length,"variation","low");learnTaste(p,.5,"variation")});
  box.querySelectorAll("[data-fit]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-fit]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("fit interest",b.dataset.fit,"User explored a fit variation","variation","low");learnTaste(p,.45,"fit")});
  box.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-size]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("size interest",b.dataset.size,"User selected a size while exploring","variation","low");learnTaste(p,.25,"size")});
 }
 function productCard(p,i){
- const v=visualFor(p),score=Math.round(productScore(p,i)),badge=i===0?"NØPE is testing this":"";
- return '<div class="shopProduct" data-product="'+p.id+'"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'" data-visual="'+i+'"><span class="productBadge">'+badge+'</span><button class="heartBtn" data-save="'+i+'" aria-label="Save">♡</button><span class="productShadow"></span></div><div class="swatches"><button class="swatch active" style="background:'+v.c1+'" data-colour="'+i+'"></button><button class="swatch" style="background:'+v.c2+'" data-colour="'+i+'"></button><button class="swatch" style="background:#d2ad73" data-colour="'+i+'"></button></div><div class="productMetaRow"><span class="productName">'+p.name+'</span><span class="productPrice">₹'+p.price+'</span></div><button class="quickBtn" data-detail="'+i+'">Quick look</button><button class="quickBtn primary" data-match="'+i+'">Add to bag</button><button class="nopeReject" data-reject="'+i+'" aria-label="Skip">Skip this</button></div>';
+ const v=visualFor(p),badge=i===0?"NØPE is testing this":"",cs=p.colors||C.neutral;
+ const sw=cs.map((c,j)=>'<button class="swatch '+(j===0?"active":"")+'" style="background:'+c+'" data-colour="'+i+'" data-color-index="'+j+'" aria-label="Colour '+(j+1)+'"></button>').join("");
+ return '<div class="shopProduct" data-product="'+p.id+'"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+'" data-visual="'+i+'">'+productArtwork(p,cs[0],cs[3])+'<span class="productBadge">'+badge+'</span><button class="heartBtn" data-save="'+i+'" aria-label="Save">♡</button><span class="productShadow"></span></div><div class="swatches">'+sw+'</div><div class="productMetaRow"><button class="productName productOpen" data-detail="'+i+'">'+p.name+'</button><span class="productPrice">₹'+p.price+'</span></div><div class="cardActions"><button class="quickBtn" data-detail="'+i+'">Explore</button><button class="quickBtn primary" data-match="'+i+'">Add</button></div><button class="nopeReject" data-reject="'+i+'" aria-label="Skip">Skip this</button></div>';
 }
 function adaptShop(items){
  const ranked=[...items].sort((a,b)=>productScore(b,0)-productScore(a,0));
@@ -336,7 +398,7 @@ function renderShopCore(items){
  root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("add intent",p.name,"User chose to move this product toward purchase","add_click","medium");learnTaste(p,2,"add to bag");addToCart(p,b);});
  root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
  root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";const p=items[i];recordBehaviorSignal("save affinity",p.name,"User saved this product","save","medium");learnTaste(p,1.4,"save")});
- root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.colour)],card=b.closest(".shopProduct"),visual=card?.querySelector(".visualProduct");card?.querySelectorAll("[data-colour]").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(visual){const c=b.style.background;visual.style.setProperty("--cloth1",c);visual.style.setProperty("--cloth2",c)}recordBehaviorSignal("colour exploration",p.name,"User explored a visible colour variation","variation","low");learnTaste(p,.45,"colour")});
+ root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.colour)],card=b.closest(".shopProduct"),visual=card?.querySelector(".visualProduct"),idx=Number(b.dataset.colorIndex),c=p.colors?.[idx]||b.style.background;card?.querySelectorAll("[data-colour]").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(visual){visual.style.setProperty("--cloth1",c);visual.style.setProperty("--cloth2",p.colors?.[(idx+1)%p.colors.length]||c);const svg=visual.querySelector(".garmentSvg");if(svg){const temp=document.createElement("div");temp.innerHTML=productArtwork(p,c,p.colors?.[(idx+3)%p.colors.length]||c);svg.replaceWith(temp.firstChild)}}recordBehaviorSignal("colour exploration",p.name,"User explored colour "+(idx+1)+" of "+(p.colors?.length||6),"variation","low");learnTaste(p,.45,"colour")});
  installRecommendationActions(items);installBehavioralLearning(items);
 }
 function renderShop(filter){
@@ -446,6 +508,8 @@ $("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","Use
 };
 renderShop("all");
 refreshSessionView();
+stage("NØPE is learning","Catalogue opened. Watching which shapes, colours and products earn attention.","nAgent");
+if(!sessionStorage.getItem("nope_open_signal")){sessionStorage.setItem("nope_open_signal","1");recordBehaviorSignal("browse start","fashion catalogue","User opened the NØPE shopping experience","page_open","low");setTimeout(()=>{SHOP_PRODUCTS.slice(0,8).forEach(p=>recordBehaviorSignal("initial exposure",p.name,"Product was presented in the first shopping view","impression","low"))},650);}
 installGuidedDemo();
 if(!navigator.mediaDevices?.getUserMedia)hint.textContent="Mic unavailable — use the text box below.";
 else hint.textContent="Click 🎙️ → Allow microphone → speak → click again to send";
