@@ -48,6 +48,49 @@ function injectIntelligenceUI(){
   .emptyMemory{font-size:10px;color:#98a2b3;line-height:1.4}
   .sessionFoot{font-size:9px;color:#98a2b3;margin-top:8px}
   .learningHint{font-size:10px;color:#667085;margin-top:8px;line-height:1.4}
+  .shopSection{margin-top:24px}
+  .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:14px}
+  .shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}
+  .shopHeadline{font-size:25px;line-height:1.08;font-weight:900;letter-spacing:-.04em;margin:4px 0}
+  .shopSub{font-size:11px;color:#667085;max-width:520px;line-height:1.5}
+  .shopPulse{font-size:10px;color:#667085;white-space:nowrap}
+  #shopProducts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .shopProduct{position:relative;border:1px solid #e8eaee;border-radius:20px;background:#fff;padding:9px;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;cursor:default}
+  .shopProduct:hover{transform:translateY(-4px);box-shadow:0 18px 45px #11111112;border-color:#d8dce3}
+  .visualProduct{height:245px;border-radius:15px;position:relative;overflow:hidden;background:linear-gradient(145deg,var(--bg1),var(--bg2));display:grid;place-items:center}
+  .visualProduct:before{content:"";position:absolute;width:155px;height:205px;border-radius:58% 58% 24% 24%;background:linear-gradient(135deg,var(--cloth1),var(--cloth2));box-shadow:inset -18px -10px 25px #0002, inset 13px 10px 18px #fff3;transform:rotate(-1deg);top:27px}
+  .visualProduct:after{content:"";position:absolute;width:58px;height:48px;border-radius:0 0 28px 28px;border-bottom:7px solid #0002;top:24px;background:linear-gradient(90deg,transparent 40%,#fff4 41%,#fff4 44%,transparent 45%);z-index:2}
+  .productShadow{position:absolute;width:145px;height:18px;border-radius:50%;background:#0002;filter:blur(8px);bottom:18px}
+  .productBadge{position:absolute;top:10px;left:10px;background:#ffffffe8;border:1px solid #fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;z-index:4}
+  .heartBtn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffffe8;font-size:15px;cursor:pointer;z-index:4}
+  .swatches{display:flex;gap:6px;margin:9px 2px 7px}
+  .swatch{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d0d5dd;cursor:pointer}
+  .swatch.active{box-shadow:0 0 0 2px #111}
+  .productMetaRow{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .productKicker{font-size:9px;color:#667085;font-weight:800}
+  .productMatch{font-size:9px;font-weight:900}
+  .productName{font-size:14px;font-weight:900;letter-spacing:-.02em;margin:5px 0 3px}
+  .productDesc{font-size:10px;color:#667085;line-height:1.45;min-height:28px}
+  .productFacts{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+  .fact{font-size:9px;padding:5px 7px;border-radius:999px;background:#f6f7f9;color:#475467}
+  .productActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .quickBtn{border:1px solid #e4e7ec;background:#fff;border-radius:10px;padding:9px;font-size:10px;font-weight:850;cursor:pointer}
+  .quickBtn.primary{background:#111;color:#fff;border-color:#111}
+  .quietChoice{font-size:9px;color:#98a2b3;text-align:center;margin-top:7px}
+  .variationHint{font-size:9px;color:#667085;margin-top:2px}
+  .choiceModal{position:fixed;inset:0;background:#0006;z-index:10000;display:grid;place-items:center;padding:18px}
+  .choiceSheet{width:min(760px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;padding:18px;box-shadow:0 30px 100px #0005}
+  .choiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .detailVisual{height:330px;border-radius:18px;background:linear-gradient(145deg,var(--bg1),var(--bg2));position:relative;display:grid;place-items:center}
+  .detailVisual:before{content:"";width:210px;height:280px;border-radius:58% 58% 24% 24%;background:linear-gradient(135deg,var(--cloth1),var(--cloth2));box-shadow:inset -25px -15px 35px #0002,inset 18px 14px 22px #fff3}
+  .detailTitle{font-size:24px;font-weight:900;letter-spacing:-.04em;margin:5px 0}
+  .choiceLabel{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#98a2b3;margin:16px 0 7px}
+  .sizeChoices,.colorChoices{display:flex;gap:7px;flex-wrap:wrap}
+  .sizeChoice{padding:8px 13px;border:1px solid #dfe3e8;background:#fff;border-radius:10px;font-size:10px;font-weight:850;cursor:pointer}
+  .sizeChoice.active{background:#111;color:#fff;border-color:#111}
+  .modalFoot{display:flex;gap:8px;margin-top:18px}
+  @media(max-width:1050px){#shopProducts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){#shopProducts{grid-template-columns:1fr}.choiceGrid{grid-template-columns:1fr}.visualProduct{height:300px}}
   @media(max-width:900px){.prefGrid{grid-template-columns:1fr}}
   @media(max-width:900px){#nopeIntel{grid-template-columns:1fr}.metricRow{grid-template-columns:repeat(3,1fr)}}
   `;
@@ -237,18 +280,39 @@ function inferProductAffinity(p){
   signals.slice(0,3).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
 }
 function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
+function visualFor(p){
+  const map={"linen-resort":["#f4e8d4","#d7e5dc","#d8a978","#b87552"],"textured-oxford":["#e7edf2","#d9d2c7","#45677a","#263f4b"],"cuban-collar":["#f1dfcc","#e6c5b6","#cf704d","#9e3f32"],"relaxed-linen":["#e9eee2","#d7d1bd","#a7ad78","#68714d"],"navy-oxford":["#dbe2ea","#e8e2d8","#263e59","#17283a"],"sand-cuban":["#eee5d3","#d9c8ad","#b69a70","#806548"],"camp-collar":["#eee0eb","#d8e6df","#7d536d","#4d7d70"],"sage-linen":["#e0eadf","#d2ddcf","#78916d","#496451"],"navy-check":["#e2e7ec","#d7d1c4","#304b61","#182d3c"],"black-camp":["#e4e1dd","#c8d0cd","#303638","#111516"],"ivory-mandarin":["#f2ede2","#e4d8c7","#e8dfca","#b8a98d"],"rust-overshirt":["#ead9ce","#d9e0d5","#a65338","#6d3426"],"performance-polo":["#dce4e3","#c9d3d7","#4c5a5d","#22292b"],"minimal-tee":["#f0efeb","#dfe5df","#eeeae0","#c8c6bc"]};const x=map[p.id]||["#eceff1","#d9dde2","#52606b","#252d32"];return {bg1:x[0],bg2:x[1],c1:x[2],c2:x[3]}}
+function openProductDetail(p){
+ const v=visualFor(p),box=document.createElement("div");box.className="choiceModal";
+ box.innerHTML='<div class="choiceSheet"><div class="choiceGrid"><div class="detailVisual" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'"></div><div><div class="shopEyebrow">NØPE quick look</div><div class="detailTitle">'+p.name+'</div><div style="font-size:18px;font-weight:900">₹'+p.price+'</div><div style="font-size:11px;color:#667085;line-height:1.5;margin-top:7px">A considered option with an easy, wearable feel.</div><div class="choiceLabel">Colour</div><div class="colorChoices"><button class="swatch active" style="background:'+v.c1+'" data-var="colour"></button><button class="swatch" style="background:'+v.c2+'" data-var="colour"></button><button class="swatch" style="background:#d2ad73" data-var="colour"></button></div><div class="choiceLabel">Feel</div><div class="sizeChoices"><button class="sizeChoice active" data-fit="relaxed">Relaxed</button><button class="sizeChoice" data-fit="regular">Regular</button><button class="sizeChoice" data-fit="fitted">Fitted</button></div><div class="choiceLabel">Size</div><div class="sizeChoices"><button class="sizeChoice" data-size="S">S</button><button class="sizeChoice active" data-size="M">M</button><button class="sizeChoice" data-size="L">L</button><button class="sizeChoice" data-size="XL">XL</button></div><div class="modalFoot"><button class="quickBtn" id="closeChoice">Maybe later</button><button class="quickBtn primary" id="addChoice">Add to bag</button></div></div></div></div>';
+ document.body.appendChild(box);box.querySelector("#closeChoice").onclick=()=>box.remove();box.querySelector("#addChoice").onclick=()=>{addToCart(p);recordBehaviorSignal("product detail preference",p.name,"User configured a product and kept exploring it","customize","medium");box.remove()};
+ box.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-var]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("colour interest",p.name,"User explored a colour variation","variation","low")});
+ box.querySelectorAll("[data-fit]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-fit]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("fit interest",b.dataset.fit,"User explored a fit variation","variation","low")});
+ box.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-size]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("size interest",b.dataset.size,"User selected a size while exploring","variation","low")});
+}
+function productCard(p,i){
+ const v=visualFor(p),score=Math.round(p.fit_score||p.score||94-i*3),meta=p.meta||"NØPE edit";
+ return '<div class="shopProduct"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'"><span class="productBadge">'+(i===0?"NØPE pick":score+"% match")+'</span><button class="heartBtn" data-save="'+i+'">♡</button><span class="productShadow"></span></div><div class="swatches"><button class="swatch active" style="background:'+v.c1+'" data-colour="'+i+'"></button><button class="swatch" style="background:'+v.c2+'" data-colour="'+i+'"></button><button class="swatch" style="background:#d2ad73" data-colour="'+i+'"></button></div><div class="productMetaRow"><span class="productKicker">'+meta.split("·")[0]+'</span><span class="productMatch">'+score+'% fit</span></div><div class="productName">'+p.name+'</div><div class="productDesc">A considered option with an easy, wearable feel.</div><div class="productFacts"><span class="fact">'+(meta.split("·")[1]||"Everyday").trim()+'</span><span class="fact">'+(meta.split("·")[2]||"Easy").trim()+'</span></div><div class="productActions"><button class="quickBtn" data-detail="'+i+'">Quick look</button><button class="quickBtn primary" data-match="'+i+'">Add to bag</button></div><button class="nopeReject" data-reject="'+i+'">Skip this</button><div class="quietChoice">or keep browsing — NØPE will follow your lead</div></div>';
+}
 function renderShop(filter){
  const root=$("shopProducts");let items=SHOP_PRODUCTS;
  if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
- root.innerHTML=items.map(p=>'<div class="shopProduct"><div class="photo">'+p.emoji+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="shopMeta">'+p.meta+'</div><button class="shopBtn" data-add="'+p.id+'">Add to bag</button></div>').join("");
- root.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addToCart(SHOP_PRODUCTS.find(x=>x.id===b.dataset.add),b));
+ root.innerHTML=items.map(productCard).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>addToCart(items[i],b));
+ root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>openProductDetail(items[i]));
+ root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";recordBehaviorSignal("save affinity",items[i].name,"User saved a product to revisit","save","medium")});
+ root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{b.classList.toggle("active");recordBehaviorSignal("colour interest",items[Number(b.dataset.colour)].name,"User explored a colour variation","variation","low")});
+ installRecommendationActions(items);installBehavioralLearning(items);
 }
 function renderShopMatches(items){
  const root=$("shopProducts");
- const tones=["#243447","#d9c3a5","#365b75","#202124","#eee5d0","#8b4b35","#38454b","#f4f4f1"];
- const brands=["NØPE Atelier","Casa Linen","Urban Loom","Sunday Club","Monarch","NØPE Basics"];
- root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'">Skip this</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
- root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});installRecommendationActions(items);installBehavioralLearning(items);
+ const enriched=items.slice(0,4).map(p=>SHOP_PRODUCTS.find(x=>x.name===p.name)||p);
+ root.innerHTML=enriched.map(productCard).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>addToCart(enriched[i],b));
+ root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>openProductDetail(enriched[i]));
+ root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";recordBehaviorSignal("save affinity",enriched[i].name,"User saved a recommendation to revisit","save","medium")});
+ root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{b.classList.toggle("active");recordBehaviorSignal("colour interest",enriched[Number(b.dataset.colour)].name,"User explored a colour variation","variation","low")});
+ installRecommendationActions(items);installBehavioralLearning(enriched);
 }
 async function mcp(name,args){
  setStatus("Calling "+name+"…");
