@@ -137,9 +137,9 @@ function proofStep(name,detail){
 }
 async function recordSignal(preference,value,reason,source,signal_type="inferred",confidence="medium"){
   try{
-    proofStep("ui","Captured: "+(value||preference)+" · source="+source);
+    if(confidence!=="low")proofStep("ui","Captured: "+(value||preference)+" · source="+source);
     const saved=await mcp("record_preference",{user_id:"demo-user",preference,value,reason,confidence,session_id:sessionId(),source,signal_type});
-    if(saved?.status==="SAVED"){
+    if(saved?.status==="SAVED"&&confidence!=="low"){
       proofStep("db","Stored in Postgres · "+preference+" = "+value);
       await refreshSessionView();
     }
@@ -243,6 +243,7 @@ function installRecommendationActions(items){
       ? {preference:"finish",value:"avoid shiny / party finishes",reason:"Implicit UI rejection of a shiny or party-style recommendation"}
       : {preference:"style",value:"avoid this style direction",reason:"Implicit UI rejection — NØPE inferred a negative style signal from the skipped recommendation"};
     try{
+      proofStep("ui","UI rejection captured · NØPE is inferring what to avoid");
       stage("Preference signal detected","You skipped an option. NØPE inferred what to avoid without asking another question.","nMemory");
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
