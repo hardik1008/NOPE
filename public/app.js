@@ -9,6 +9,8 @@ const NOPE_LANGUAGE="hi-IN";
 const NOPE_SPEED=1.0;
 
 function injectIntelligenceUI(){
+  // Keep the storefront focused. Analytics/memory lives on the dedicated /memory page.
+  if(location.pathname==="/")return;
   const store=document.querySelector(".store");
   if(!store||document.getElementById("nopeIntel"))return;
   const s=document.createElement("style");
