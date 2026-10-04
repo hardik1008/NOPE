@@ -2,7 +2,8 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const API="/api/mcp";
-// NØPE permanent voice configuration.
+let currentInputSource="text";
+// Gnani is input-only: NØPE never uses outbound TTS.
 const NOPE_VOICE="Nalini";
 const NOPE_LANGUAGE="hi-IN";
 const NOPE_SPEED=1.0;
@@ -486,7 +487,7 @@ let demoBaseline=[];
 const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
 
 function setStatus(t,c){if(statusEl){statusEl.textContent=t;statusEl.className="status "+(c||"")}}
-function stage(t,d,n){$("stageTitle").textContent=t;$("stageDetail").textContent=d;["nGnani","nAgent","nMemory","nCatalog","nTts"].forEach(x=>$(x)?.classList.remove("live"));if(n)$(n)?.classList.add("live");const e=document.createElement("div");e.className="event";e.innerHTML='<span class="dot on"></span><span><b>'+t+"</b> — "+d+"</span>";$("timeline").prepend(e)}
+function stage(t,d,n){$("stageTitle").textContent=t;$("stageDetail").textContent=d;["nGnani","nAgent","nMemory","nCatalog"].forEach(x=>$(x)?.classList.remove("live"));if(n)$(n)?.classList.add("live");const e=document.createElement("div");e.className="event";e.innerHTML='<span class="dot on"></span><span><b>'+t+"</b> — "+d+"</span>";$("timeline").prepend(e)}
 function inferProductAffinity(p){
   const raw=((p?.name||"")+" "+(p?.style||"")+" "+(p?.meta||"")+" "+(p?.tags||[]).join(" ")).toLowerCase();
   const signals=[];
@@ -636,16 +637,11 @@ async function runNopeVoice(){
  if(ranked.length){renderShopMatches(ranked);proofStep("update","UI re-ranked "+ranked.length+" products using the fetched memory");}
  const picks=ranked.slice(0,3);
  updateIntelligence(transcript,found,picks);
- const reply=picks.length?"Yay... aapke liye kuch really lovely options mil gaye hain. Mainne "+picks.length+" options shortlist kiye hain. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Inmein se pehla option mujhe especially aapki current style, occasion aur budget ke liye achchha lag raha hai. Aap aaraam se dekhiye. Aur agar koi option bilkul aapke type ka na lage, mujhe bas bata dena ki kya pasand nahi aaya. Main us feedback ko samajh kar next options aur better kar dungi.":"Hmm... abhi mujhe aapke liye exact match nahi mila. But no worries at all. Aap bas mujhe bata dijiye ki budget ya style mein kya change karna hai... main calmly dobara search karke aapke liye better options dhoondhungi.";
- transcriptEl.textContent=transcript;stage("Generating NØPE voice response","Sending the final decision to Gnani TTS.","nTts");
- const t=await mcp("gnani_text_to_speech",{text:reply,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});
- if(!t.success)throw Error(t.error||"TTS failed");
- const bin=atob(t.audio_base64||""),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
- if(audio._objectUrl)URL.revokeObjectURL(audio._objectUrl);audio._objectUrl=URL.createObjectURL(new Blob([arr],{type:t.audio_content_type||"audio/wav"}));audio.src=audio._objectUrl;audio.hidden=false;audio.load();
- try{await audio.play()}catch(e){console.warn("Autoplay blocked; audio controls remain available.",e)}
- hint.textContent="NØPE replied — click 🎙️ to speak again";setStatus("✓ Full voice loop complete","ok");
+ transcriptEl.textContent=transcript;
+  stage("NØPE decision ready",currentInputSource==="voice"?"Gnani was used only to turn your voice into text. NØPE immediately updated the shortlist from that input.":"NØPE used your typed input and immediately updated the shortlist.","nAgent");
+  hint.textContent=currentInputSource==="voice"?"Voice understood — NØPE updated the products":"NØPE updated the products from your message";setStatus(currentInputSource==="voice"?"✓ Voice input understood · products updated":"✓ Message understood · products updated","ok");
 }
-async function processTranscript(text,source="text"){transcript=String(text||"").trim();if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}proofStep("ui","Intent received from "+source+" · extracting signals");await captureIntentSignals(transcript,source);transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
+async function processTranscript(text,source="text"){transcript=String(text||"").trim();currentInputSource=source;if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}proofStep("ui","Intent received from "+source+" · extracting signals");await captureIntentSignals(transcript,source);transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
 async function start(){
  setStatus("🎙 Click registered — requesting microphone…","ok");
  if(!navigator.mediaDevices?.getUserMedia)throw Error("Microphone API unavailable. Use Chrome or Edge over HTTPS.");
@@ -687,7 +683,7 @@ $("surprise").onclick=()=>{
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
 const agenticOpen=document.getElementById("agenticOpen");if(agenticOpen)agenticOpen.onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
-$("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
+$("speak").onclick=()=>setStatus("NØPE is visual-first. Use 🎙️ when you want to speak to NØPE directly.","ok");
 $("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","User chose to inspect the bag","bag_click","low");
  if(!cart.length)return setStatus("Your bag is empty. Ask NØPE to find something for you.","ok");
  const p=cart[0];if(!window.confirm("Proceed with a TEST purchase of "+p.name+" for ₹"+p.price+"? No real money will be charged."))return;
