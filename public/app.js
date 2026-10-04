@@ -52,6 +52,7 @@ function injectIntelligenceUI(){
   .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:12px}.shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}.shopHeadline{font-size:29px;line-height:1.02;font-weight:900;letter-spacing:-.055em;margin:3px 0}.shopSub{font-size:11px;color:#667085;max-width:460px;line-height:1.45}.shopPulse{font-size:10px;color:#98a2b3;white-space:nowrap}
   .tasteLab{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:9px 10px;margin:0 0 14px;border:1px solid #eceef2;border-radius:14px;background:#fbfcfd}.tasteLabLabel{font-size:9px;font-weight:950;color:#98a2b3;letter-spacing:.08em;text-transform:uppercase}.tasteLabQuestion{font-size:10px;font-weight:850;color:#111}.tasteChip{border:1px solid #e2e5ea;background:#fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:850;cursor:pointer}.tasteChip:hover{border-color:#111}.tastePair{display:flex;align-items:center;gap:6px;margin-left:auto}.tastePair button{border:1px solid #e2e5ea;background:#fff;border-radius:10px;padding:6px 9px;font-size:9px;font-weight:850;cursor:pointer;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tastePair button:hover{border-color:#111}.tasteVs{font-size:8px;color:#98a2b3;font-weight:900}
   .microNudge.rejectionNudge .microBubble{border-color:#e5dff7}.microNudge.rejectionNudge .microDot{background:#fff5f3}.microNudge.rejectionNudge .microKicker{color:#7c3aed}
+  .profileReveal,.deliveryLab{margin-top:12px;padding:13px;border:1px solid #e7e9ee;border-radius:16px;background:#fff}.profileReveal.hidden{display:none}.profileTitle,.deliveryTitle{font-size:10px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;color:#111}.profileSub,.deliverySub{font-size:10px;color:#667085;margin-top:4px;line-height:1.45}.profileCombo{font-size:16px;font-weight:950;letter-spacing:-.03em;margin:9px 0 4px}.profileEvidence{font-size:9px;color:#98a2b3}.profileBadges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.profileBadge{font-size:9px;padding:5px 7px;border:1px solid #e4e7ec;border-radius:999px;background:#fbfcfd}.tasteEvidence{display:flex;align-items:center;gap:7px;margin-left:auto;font-size:8px;color:#98a2b3;font-weight:850}.tasteEvidenceTrack{width:55px;height:4px;background:#eef0f3;border-radius:99px;overflow:hidden}.tasteEvidenceTrack i{display:block;height:100%;width:0;background:#111;border-radius:99px;transition:width .3s ease}.deliveryGrid{display:grid;grid-template-columns:1fr auto auto;gap:7px;margin-top:10px}.deliveryInput{border:1px solid #e4e7ec;border-radius:10px;padding:9px 10px;font-size:10px;min-width:0}.deliveryBtn{border:1px solid #e4e7ec;background:#fff;border-radius:10px;padding:9px 10px;font-size:9px;font-weight:850;cursor:pointer}.deliveryBtn.primary{background:#111;color:#fff;border-color:#111}.deliveryStatus{margin-top:8px;padding:8px 9px;border-radius:10px;background:#f8fafc;font-size:10px;color:#475467}.deliveryStatus.good{background:#f2fbf5;color:#087443}.deliveryStatus.bad{background:#fff6f5;color:#b42318}@media(max-width:700px){.deliveryGrid{grid-template-columns:1fr 1fr}.deliveryInput{grid-column:1/-1}}
   .shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}
   .shopHeadline{font-size:25px;line-height:1.08;font-weight:900;letter-spacing:-.04em;margin:4px 0}
   .shopSub{font-size:11px;color:#667085;max-width:520px;line-height:1.5}
@@ -136,6 +137,10 @@ function injectIntelligenceUI(){
   const shopSection=store.querySelector(".shopSection");
   if(shopSection)shopSection.parentNode.insertBefore(experiment,shopSection);
   else store.appendChild(experiment);
+  const profileReveal=document.createElement("div");profileReveal.id="nopeProfileReveal";profileReveal.className="profileReveal hidden";profileReveal.innerHTML='<div class="profileTitle">🧠 NØPE has seen enough to say something</div><div id="profileCombo" class="profileCombo">Still learning…</div><div id="profileEvidence" class="profileEvidence">NØPE waits for repeated choices before making a strong claim.</div><div id="profileBadges" class="profileBadges"></div><div id="profileResults" class="profileBadges"></div>';
+  const deliveryLab=document.createElement("div");deliveryLab.id="nopeDeliveryLab";deliveryLab.className="deliveryLab";deliveryLab.innerHTML='<div class="deliveryTitle">▣ NØPE → Delhivery</div><div class="deliverySub">Use this tiny test rail to show NØPE checking delivery, creating a mock shipment, and tracking it — no real parcel is sent.</div><div class="deliveryGrid"><input id="deliveryPin" class="deliveryInput" inputmode="numeric" maxlength="6" value="122001" placeholder="Pincode"><button id="deliveryCheck" class="deliveryBtn">Check delivery</button><button id="deliveryCreate" class="deliveryBtn primary">Create mock shipment</button></div><button id="deliveryTrack" class="deliveryBtn" style="width:100%;margin-top:7px">Track latest shipment</button><div id="deliveryStatus" class="deliveryStatus">Ready — NØPE can hand the delivery step to the Delhivery mock.</div>';
+  if(shopSection){shopSection.appendChild(profileReveal);shopSection.appendChild(deliveryLab)}
+  else store.appendChild(deliveryLab);
   store.appendChild(intel);
 }
 function sessionId(){let s=localStorage.getItem("nope_session_id");if(!s){s="sess_"+crypto.randomUUID();localStorage.setItem("nope_session_id",s)}return s}
@@ -172,7 +177,7 @@ function maybeShowNudge(trigger="time",context={}){
   let timer=setTimeout(()=>dismiss(),4200);
   function dismiss(){clearTimeout(timer);el.classList.remove("show");setTimeout(()=>el.remove(),220);nudgeState.busy=false;}
   el.querySelector(".microClose").onclick=()=>{recordBehaviorSignal("micro-question dismissal",q.q,"User chose not to answer a lightweight preference question","micro_nudge_dismiss","low");dismiss()};
-  el.querySelectorAll("[data-opt]").forEach(btn=>btn.onclick=async()=>{const chosen=q.opts[Number(btn.dataset.opt)],k=chosen[1][0],v=chosen[1][1];nudgeState.answered++;const reason="User voluntarily answered a product-grounded NØPE question about products visible in the store";await recordSignal(k,v,reason,"ui","micro_nudge","medium");const picked=SHOP_PRODUCTS.find(p=>p.name===v)||SHOP_PRODUCTS.find(p=>v.includes(p.name));if(k==="pairwise choice"&&picked){inferProductAffinity(picked);learnTaste(picked,.8,"pairwise micro question")}if(k==="product direction"&&picked){inferProductAffinity(picked);learnTaste(picked,.6,"product direction question")}await refreshSessionView();showLearnedMemory(v,"User chose from products currently shown");if(k==="product direction"||k==="pairwise choice")await rerankFromMemory(k==="pairwise choice"?v:"");dismiss()});
+  el.querySelectorAll("[data-opt]").forEach(btn=>btn.onclick=async()=>{const chosen=q.opts[Number(btn.dataset.opt)],k=chosen[1][0],v=chosen[1][1];nudgeState.answered++;const reason="User voluntarily answered a product-grounded NØPE question about products visible in the store";await recordSignal(k,v,reason,"ui","micro_nudge","medium");const picked=SHOP_PRODUCTS.find(p=>p.name===v)||SHOP_PRODUCTS.find(p=>v.includes(p.name));if(k==="pairwise choice"&&picked){registerPositiveEvidence(picked,"pairwise_choice");inferProductAffinity(picked);learnTaste(picked,.8,"pairwise micro question")}if(k==="product direction"&&picked){registerPositiveEvidence(picked,"product_direction");inferProductAffinity(picked);learnTaste(picked,.6,"product direction question")}await refreshSessionView();showLearnedMemory(v,"User chose from products currently shown");if(k==="product direction"||k==="pairwise choice")await rerankFromMemory(k==="pairwise choice"?v:"");dismiss()});
 }
 function startMicroNudges(){
   if(!window.__nopeNudgeTimer)window.__nopeNudgeTimer=setInterval(()=>maybeShowNudge("time"),1000);
@@ -304,7 +309,7 @@ function renderTasteLab(items){
   if(/bold|neon|floral|colour|bright/.test(words))choices.push(["More colour","colour direction","prefer bolder colours"]);
   const selected=choices.slice(0,4);
   const a=visible[0],b=visible[1];
-  bar.innerHTML='<span class="tasteLabLabel">TEACH NØPE</span><span class="tasteLabQuestion">One tap is enough:</span>'+selected.map((x,i)=>'<button class="tasteChip" data-teach="'+i+'">'+x[0]+'</button>').join("")+(a&&b?'<span class="tastePair"><span class="tasteVs">OR</span><button data-pair="0" title="'+a.name+'">'+a.name+'</button><span class="tasteVs">vs</span><button data-pair="1" title="'+b.name+'">'+b.name+'</button></span>':"");
+  bar.innerHTML='<span class="tasteLabLabel">TEACH NØPE</span><span class="tasteLabQuestion">Tiny choices help NØPE learn:</span>'+selected.map((x,i)=>'<button class="tasteChip" data-teach="'+i+'">'+x[0]+'</button>').join("")+(a&&b?'<span class="tastePair"><span class="tasteVs">THIS?</span><button data-pair="0" title="'+a.name+'">'+a.name+'</button><span class="tasteVs">or</span><button data-pair="1" title="'+b.name+'">'+b.name+'</button></span>':"")+'<span class="tasteEvidence"><span id="tasteEvidenceCount">'+evidenceProductCount()+' / 6 meaningful product choices</span><span class="tasteEvidenceTrack"><i id="tasteEvidenceFill" style="width:'+Math.min(100,(evidenceProductCount()/6)*100)+'%"></i></span></span>';
   bar.querySelectorAll("[data-teach]").forEach(btn=>btn.onclick=async()=>{const c=selected[Number(btn.dataset.teach)];if(!c)return;await recordSignal(c[1],c[2],"User used the one-tap Teach NØPE control","ui","teach_nudge","medium");learnTasteByValue(c[1],c[2]);await rerankFromMemory(c[2]);setStatus("✓ NØPE updated from one tap: "+c[0],"ok")});
   bar.querySelectorAll("[data-pair]").forEach(btn=>btn.onclick=async()=>{const chosen=Number(btn.dataset.pair)===0?a:b;if(!chosen)return;await recordSignal("pairwise choice",chosen.name,"User picked this product when comparing two available products","ui","pairwise_choice","medium");inferProductAffinity(chosen);learnTaste(chosen,1.3,"pairwise choice");await rerankFromMemory("prefer the attributes of "+chosen.name);setStatus("✓ NØPE learned from your choice between two real products","ok")});
 }
@@ -316,8 +321,8 @@ function installBehavioralLearning(items){
     card.addEventListener("mouseenter",()=>{entered=Date.now();if(timer)clearTimeout(timer);timer=setTimeout(()=>{viewed=true;recordBehaviorSignal("hover intent",p.name,"User lingered on this product","hover_dwell","low");learnTaste(p,.18,"hover")},900)});
     card.addEventListener("mouseleave",()=>{if(timer)clearTimeout(timer);if(entered&&Date.now()-entered>500)recordBehaviorSignal("product consideration",p.name,"User explored this product visually","hover","low");entered=0});
     card.addEventListener("focusin",()=>{if(!viewed){viewed=true;recordBehaviorSignal("product consideration",p.name,"User focused on this product","focus","low");learnTaste(p,.2,"focus")}});
-    card.addEventListener("click",e=>{if(e.target.closest("button"))return;recordBehaviorSignal("product click",p.name,"User intentionally interacted with this product","product_click","low");learnTaste(p,.35,"click");openProductDetail(p)});
-    const visual=card.querySelector(".visualProduct");if(visual)visual.onclick=e=>{e.stopPropagation();recordBehaviorSignal("visual interest",p.name,"User clicked the product visual","visual_click","low");learnTaste(p,.45,"visual click");openProductDetail(p)};
+    card.addEventListener("click",e=>{if(e.target.closest("button"))return;registerPositiveEvidence(p,"product_click");recordBehaviorSignal("product click",p.name,"User intentionally interacted with this product","product_click","low");learnTaste(p,.35,"click");openProductDetail(p)});
+    const visual=card.querySelector(".visualProduct");if(visual)visual.onclick=e=>{e.stopPropagation();registerPositiveEvidence(p,"visual_click");recordBehaviorSignal("visual interest",p.name,"User clicked the product visual","visual_click","low");learnTaste(p,.45,"visual click");openProductDetail(p)};
   });
 }
 function installRecommendationActions(items){
@@ -392,7 +397,7 @@ injectIntelligenceUI();
 const resetDemoBtn=document.getElementById("resetDemo");
 if(resetDemoBtn)resetDemoBtn.onclick=async()=>{
   resetDemoBtn.disabled=true;resetDemoBtn.textContent="Resetting…";
-  try{const oldSession=sessionId();await fetch("/api/demo/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:"demo-user"})});localStorage.removeItem("nope_session_id");localStorage.removeItem("nope_saved_products");sessionStorage.removeItem("nope_open_signal");localStorage.removeItem("nope_taste_"+oldSession);location.reload();}
+  try{const oldSession=sessionId();await fetch("/api/demo/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:"demo-user"})});localStorage.removeItem("nope_session_id");localStorage.removeItem("nope_saved_products");sessionStorage.removeItem("nope_open_signal");sessionStorage.removeItem("nope_demo_waybill");sessionStorage.removeItem(positiveEvidenceKey);localStorage.removeItem("nope_taste_"+oldSession);location.reload();}
   catch(e){resetDemoBtn.disabled=false;resetDemoBtn.textContent="↺ Reset";setStatus("Reset failed: "+e.message,"err")}
 };
 const C={
@@ -435,6 +440,47 @@ const SHOP_PRODUCTS=[
 {id:"maroon-mandarin",name:"Maroon Mandarin Shirt",price:2399,meta:"Monarch · Festive · Bold",shape:"maroon",colors:C.dark},
 {id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",shape:"olive",colors:C.linen}
 ];
+const positiveEvidenceKey="nope_positive_evidence_"+sessionId();
+let positiveEvidence=[];
+try{positiveEvidence=JSON.parse(sessionStorage.getItem(positiveEvidenceKey)||"[]")}catch(e){positiveEvidence=[]}
+function persistPositiveEvidence(){sessionStorage.setItem(positiveEvidenceKey,JSON.stringify(positiveEvidence.slice(-12)))}
+function evidenceProductCount(){return new Set(positiveEvidence.map(x=>x.product_id)).size}
+function registerPositiveEvidence(p,action){
+  if(!p||!p.id)return;
+  if(!positiveEvidence.some(x=>x.product_id===p.id)){
+    positiveEvidence.push({product_id:p.id,name:p.name,action,at:Date.now()});persistPositiveEvidence();
+    updatePositiveEvidenceUI();
+    if(evidenceProductCount()===6)analyzeTasteAfterEvidence();
+  }
+}
+function updatePositiveEvidenceUI(){
+  const count=evidenceProductCount(),text=document.getElementById("tasteEvidenceCount"),fill=document.getElementById("tasteEvidenceFill");
+  if(text)text.textContent=count+" / 6 meaningful product choices";
+  if(fill)fill.style.width=Math.min(100,(count/6)*100)+"%";
+}
+async function analyzeTasteAfterEvidence(){
+  const reveal=document.getElementById("nopeProfileReveal");if(!reveal)return;
+  try{
+    reveal.classList.remove("hidden");
+    document.getElementById("profileCombo").textContent="NØPE is connecting the dots…";
+    document.getElementById("profileEvidence").textContent="6 different products chosen. Now checking what repeats — and what your rejections say to avoid.";
+    const mem=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
+    const analysis=await mcp("analyze_customer_profile",{evidence:positiveEvidence,preferences:mem.preferences||[],products:SHOP_PRODUCTS});
+    const combo=analysis.combination||"Still forming a taste pattern";
+    const comboEl=document.getElementById("profileCombo"),evEl=document.getElementById("profileEvidence"),badges=document.getElementById("profileBadges"),results=document.getElementById("profileResults");
+    if(comboEl)comboEl.textContent=analysis.status==="PROFILE_CONFIRMED"?"Your NØPE sweet spot: "+combo:"Your current direction: "+combo;
+    if(evEl)evEl.textContent=analysis.status==="PROFILE_CONFIRMED"?"6 product choices · repeated attributes found · "+analysis.confidence+" confidence":"6 product choices · NØPE sees a direction, but will keep learning before making a hard rule.";
+    if(badges)badges.innerHTML=(analysis.positive_pattern||[]).map(x=>'<span class="profileBadge">✓ '+x+'</span>').concat((analysis.negative_preferences||[]).map(x=>'<span class="profileBadge">↘ avoiding '+x+'</span>')).join("");
+    const ranked=await mcp("rank_products",{products:SHOP_PRODUCTS,preferences:mem.preferences||[],intent:(analysis.combination||"")});
+    const rankedProducts=(ranked.results||[]).map(x=>SHOP_PRODUCTS.find(p=>p.name===x.name)).filter(Boolean);
+    const top=[...rankedProducts,...SHOP_PRODUCTS.filter(p=>!rankedProducts.some(x=>x.id===p.id))].slice(0,4);
+    if(results)results.innerHTML='<span style="width:100%;font-size:9px;font-weight:950;color:#98a2b3;letter-spacing:.08em;text-transform:uppercase;margin-top:6px">NØPE would show next</span>'+top.map(x=>'<span class="profileBadge">'+x.name+' · ₹'+x.price+'</span>').join("");
+    renderShopCore(top.concat(SHOP_PRODUCTS.filter(p=>!top.some(x=>x.id===p.id))).slice(0,8));
+    updatePositiveEvidenceUI();
+    stage("Taste pattern formed","NØPE combined repeated positive choices with rejection memory before changing the shortlist.","nAgent");
+    setStatus("✓ NØPE connected 6 product choices into a current taste fingerprint","ok");
+  }catch(e){console.warn("Taste analysis failed",e);const ev=document.getElementById("profileEvidence");if(ev)ev.textContent="NØPE has the evidence, but the profile check is still forming.";}
+}
 let cart=[], recorder=null, chunks=[], recording=false, transcript="";
 let demoBaseline=[];
 const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
@@ -451,7 +497,7 @@ function inferProductAffinity(p){
   if(/youthful|stylish/.test(raw))signals.push(["style","youthful"]);
   signals.slice(0,3).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
 }
-function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
+function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);registerPositiveEvidence(p,"add_to_bag");recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
 const tasteKey="nope_taste_"+sessionId();
 let tasteModel={};try{tasteModel=JSON.parse(localStorage.getItem(tasteKey)||"{}")}catch(e){tasteModel={}}
 function traitsOf(p){
@@ -535,8 +581,8 @@ function renderShopCore(items){
  const root=$("shopProducts");root.innerHTML=items.map(productCard).join("");
  renderTasteLab(items);
  root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("add intent",p.name,"User chose to move this product toward purchase","add_click","medium");learnTaste(p,2,"add to bag");addToCart(p,b);});
- root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
- root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=items[i];if(!p)return;const isSaved=savedProducts.has(p.id);if(isSaved){savedProducts.delete(p.id);b.textContent="♡";b.classList.remove("saved");b.setAttribute("aria-label","Favourite");persistSavedProducts();await mcp("remove_preference",{user_id:"demo-user",preference:"save affinity",value:p.name,session_id:sessionId()});recordBehaviorSignal("unsave action",p.name,"User unfavourited this product","unsave_click","low");setStatus(p.name+" removed from favourites.","ok");await refreshSessionView();}else{savedProducts.add(p.id);b.textContent="♥";b.classList.add("saved");b.setAttribute("aria-label","Unfavourite");persistSavedProducts();await recordSignal("save affinity",p.name,"User saved this product","ui","save","medium");learnTaste(p,1.4,"save");setStatus(p.name+" saved to favourites.","ok")}});
+ root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];registerPositiveEvidence(p,"quick_look");recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
+ root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=items[i];if(!p)return;const isSaved=savedProducts.has(p.id);if(isSaved){savedProducts.delete(p.id);b.textContent="♡";b.classList.remove("saved");b.setAttribute("aria-label","Favourite");persistSavedProducts();await mcp("remove_preference",{user_id:"demo-user",preference:"save affinity",value:p.name,session_id:sessionId()});recordBehaviorSignal("unsave action",p.name,"User unfavourited this product","unsave_click","low");setStatus(p.name+" removed from favourites.","ok");await refreshSessionView();}else{savedProducts.add(p.id);b.textContent="♥";b.classList.add("saved");b.setAttribute("aria-label","Unfavourite");persistSavedProducts();registerPositiveEvidence(p,"favourite");await recordSignal("save affinity",p.name,"User saved this product","ui","save","medium");learnTaste(p,1.4,"save");setStatus(p.name+" saved to favourites.","ok")}});
  root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.colour)],card=b.closest(".shopProduct"),visual=card?.querySelector(".visualProduct"),idx=Number(b.dataset.colorIndex),c=p.colors?.[idx]||b.style.background;card?.querySelectorAll("[data-colour]").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(visual){visual.style.setProperty("--cloth1",c);visual.style.setProperty("--cloth2",p.colors?.[(idx+1)%p.colors.length]||c);const svg=visual.querySelector(".garmentSvg");if(svg){const temp=document.createElement("div");temp.innerHTML=productArtwork(p,c,p.colors?.[(idx+3)%p.colors.length]||c);svg.replaceWith(temp.firstChild)}}recordBehaviorSignal("colour exploration",p.name,"User explored colour "+(idx+1)+" of "+(p.colors?.length||6),"variation","low");learnTaste(p,.45,"colour")});
  installRecommendationActions(items);installBehavioralLearning(items);
 }
@@ -555,6 +601,15 @@ async function mcp(name,args){
  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:Date.now(),method:"tools/call",params:{name,arguments:args}})});
  const j=await r.json();if(j.error)throw Error(j.error.message||"MCP error");
  const t=j.result?.content?.find(x=>x.type==="text")?.text;return t?JSON.parse(t):j.result;
+}
+function deliveryStatus(text,kind=""){const el=document.getElementById("deliveryStatus");if(el){el.textContent=text;el.className="deliveryStatus "+kind}}
+function deliveryProduct(){return cart[0]||SHOP_PRODUCTS.find(p=>savedProducts.has(p.id))||currentVisibleProducts()[0]||SHOP_PRODUCTS[0]}
+function installDeliveryLab(){
+  const check=document.getElementById("deliveryCheck"),create=document.getElementById("deliveryCreate"),track=document.getElementById("deliveryTrack"),pin=document.getElementById("deliveryPin");
+  if(!check||check.dataset.ready)return;check.dataset.ready="1";
+  check.onclick=async()=>{const p=pin?.value?.trim()||"122001";stage("NØPE checking delivery","NØPE asked the Delhivery mock whether pincode "+p+" can be served.","nAgent");deliveryStatus("Checking "+p+"…");try{const r=await mcp("delhivery_check_serviceability",{pincode:p,payment_mode:"Prepaid"});const pc=r.delivery_codes?.[0]?.postal_code;if(pc?.pre_paid==="Y"){deliveryStatus("✓ Serviceable · Prepaid delivery available for "+p,"good");stage("Delhivery replied","Pincode "+p+" is serviceable in the mock rail.","nCatalog")}else{deliveryStatus("Not serviceable in this mock · "+(pc?.remarks||"Delivery unavailable"),"bad");stage("Delhivery replied","The mock rail returned a delivery constraint for "+p+".","nCatalog")}}catch(e){deliveryStatus("Could not check delivery: "+e.message,"bad")}};
+  create.onclick=async()=>{const p=deliveryProduct();const pincode=pin?.value?.trim()||"122001";stage("NØPE preparing delivery","Using the product you most recently showed interest in: "+p.name+".","nAgent");deliveryStatus("Creating mock Delhivery shipment…");try{const order="NOPE-DEMO-"+Date.now();const r=await mcp("delhivery_create_shipment",{format:"json",test_mode:"success",shipments:[{order,user_id:"demo-user",payment_mode:"Prepaid",name:"Demo User",add:"Demo Address",city:"Gurugram",state:"Haryana",pin:pincode,phone:"9999999999",products:[{product_name:p.name,quantity:1,price:p.price}],total_amount:p.price}]});const wb=r.waybill||r.packages?.[0]?.waybill;if(!wb)throw Error("No AWB returned");sessionStorage.setItem("nope_demo_waybill",wb);deliveryStatus("✓ Shipment manifested · AWB "+wb,"good");stage("Delhivery shipment created","NØPE handed "+p.name+" to the mock delivery rail · AWB "+wb,"nCatalog");recordBehaviorSignal("delivery intent","mock shipment for "+p.name,"User tested the NØPE → Delhivery delivery flow","delivery_test","low")}catch(e){deliveryStatus("Shipment failed: "+e.message,"bad");setStatus("Delhivery error: "+e.message,"err")}};
+  track.onclick=async()=>{let wb=sessionStorage.getItem("nope_demo_waybill")||"";stage("NØPE tracking delivery","NØPE is asking the Delhivery mock for the latest shipment status.","nAgent");deliveryStatus("Tracking…");try{const r=await mcp("delhivery_track_latest_shipment",{});const s=r.ShipmentData?.[0]?.Shipment?.[0];const actual=s?.AWB||wb||"latest";const status=s?.Status?.Status||"In Transit";if(actual&&!wb)sessionStorage.setItem("nope_demo_waybill",actual);deliveryStatus("✓ "+status+" · AWB "+actual,"good");stage("Delhivery tracking returned","Shipment "+actual+" is currently "+status+".","nCatalog")}catch(e){deliveryStatus("Tracking failed: "+e.message,"bad")}};
 }
 function audioBufferToWav(b){
  const n=b.length,o=new ArrayBuffer(44+n*2),v=new DataView(o),rate=b.sampleRate;
@@ -649,6 +704,8 @@ $("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","Use
  }catch(e){setStatus("Checkout error: "+e.message,"err")}
 };
 renderShop("all");
+updatePositiveEvidenceUI();
+installDeliveryLab();
 refreshSessionView();
 startMicroNudges();
 stage("NØPE is learning","Catalogue opened. Watching which shapes, colours and products earn attention.","nAgent");

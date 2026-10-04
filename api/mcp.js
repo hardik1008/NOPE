@@ -106,6 +106,19 @@ const tools = [
     }
   },
   {
+    name: "analyze_customer_profile",
+    description: "Build a conservative, catalogue-grounded taste fingerprint from repeated positive product choices and current negative preference evidence. Only trust the supplied products and preferences.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        evidence: { type: "array", description: "Positive interactions with products from the NØPE catalogue." },
+        preferences: { type: "array", description: "Current stored preference memory and rejection signals." },
+        products: { type: "array", description: "The available NØPE catalogue." }
+      },
+      required: ["evidence","preferences","products"]
+    }
+  },
+  {
     name: "get_preferences",
     description: "Retrieve a user's learned preferences and rejection signals.",
     inputSchema: {
@@ -1182,6 +1195,38 @@ export default async function (req, res) {
         content: [{ type:"text", text: JSON.stringify({ status:"REMOVED", removed_count: deleted.rowCount || 0, preference, value }) }],
         isError:false
       }));
+    }
+
+    if (name === "analyze_customer_profile") {
+      const evidence = Array.isArray(args.evidence) ? args.evidence : [];
+      const preferences = Array.isArray(args.preferences) ? args.preferences : [];
+      const products = Array.isArray(args.products) ? args.products : [];
+      const productMap = new Map(products.map(p => [String(p.id || p.product_id || p.name), p]));
+      const positive = evidence.map(e => productMap.get(String(e.product_id)) || null).filter(Boolean);
+      const productIds = [...new Set(positive.map(p => String(p.id || p.product_id || p.name)))];
+      const traitDefs = [
+        ["relaxed", /relaxed|casual|easy|airy|resort|cuban|camp|oversized/i, "relaxed fits"],
+        ["clean", /clean|minimal|understated|plain/i, "clean, understated looks"],
+        ["formal", /formal|structured|executive|office|tailored|slim|fitted/i, "formal / structured looks"],
+        ["linen", /linen/i, "linen"],
+        ["cotton", /cotton|oxford/i, "cotton / oxford"],
+        ["shiny", /shiny|satin|gloss|silk/i, "shiny finishes"],
+        ["expressive", /loud|neon|floral|bold|check|graphic|orange|yellow|maroon/i, "more expressive pieces"],
+        ["dark", /black|navy|charcoal|maroon|olive|grey|dark/i, "deeper tones"],
+        ["light", /white|ivory|sand|sage|beige|light/i, "lighter tones"]
+      ];
+      const counts = {};
+      traitDefs.forEach(([key,re,label])=>counts[key]={key,label,count:0,products:[]});
+      positive.forEach(p=>{const raw=String(p.name||"")+" "+String(p.meta||"")+" "+String(p.style||"")+" "+(Array.isArray(p.tags)?p.tags.join(" "):"");traitDefs.forEach(([key,re])=>{if(re.test(raw)){counts[key].count++;counts[key].products.push(p.name)}})});
+      const recurring = Object.values(counts).filter(x=>x.count>=2).sort((a,b)=>b.count-a.count || a.label.localeCompare(b.label));
+      const negativeText = JSON.stringify(preferences).toLowerCase();
+      const negativeLabels = [];
+      if(/avoid overly formal|avoid formal|avoid structured/.test(negativeText))negativeLabels.push("formal / structured looks");
+      if(/avoid shiny|avoid .*gloss|avoid .*party/.test(negativeText))negativeLabels.push("shiny / party finishes");
+      if(/avoid loud|avoid .*expressive/.test(negativeText))negativeLabels.push("loud / expressive pieces");
+      const combo = recurring.slice(0,3).filter(x=>!negativeLabels.includes(x.label));
+      const confidence = productIds.length>=6 && combo.length>=2 ? "high" : productIds.length>=4 && combo.length>=2 ? "medium" : "low";
+      return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({status:confidence==="high"?"PROFILE_CONFIRMED":"PROFILE_FORMING",evidence_products:productIds.length,confidence,positive_pattern:combo.map(x=>x.label),combination:combo.length?combo.slice(0,3).map(x=>x.label).join(" + "):null,supporting_products:combo.slice(0,3).map(x=>({trait:x.label,count:x.count,products:x.products.slice(0,4)})),negative_preferences:negativeLabels,message:confidence==="high"?"NØPE has enough repeated product evidence to show a taste fingerprint.":"NØPE is still learning; it is not ready to make a strong taste claim."})}],isError:false}));
     }
 
     if (name === "get_preferences") {
