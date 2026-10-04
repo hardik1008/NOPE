@@ -12,7 +12,7 @@ function injectIntelligenceUI(){
   if(!store||document.getElementById("nopeIntel"))return;
   const s=document.createElement("style");
   s.textContent=`
-  #nopeIntel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9990;display:block;width:min(430px,calc(100vw - 28px));margin:0;pointer-events:none}.intelCard{display:none!important}.intelCard:last-child{display:flex!important;align-items:center;justify-content:center;gap:10px;padding:9px 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fffffff5;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.intelHead,#memoryLive,#sessionMemory,#demoRun{display:none!important}.learningHint{margin:0!important;font-size:10px!important;color:#667085!important}.shopSection{margin-top:34px}
+  #nopeIntel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9990;display:block;width:min(760px,calc(100vw - 28px));margin:0;pointer-events:none}.intelCard{display:none!important}.intelCard:last-child{display:flex!important;align-items:center;justify-content:center;gap:10px;padding:9px 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fffffff5;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.intelHead,#memoryLive,#sessionMemory,#demoRun{display:none!important}.learningHint{margin:0!important;font-size:10px!important;color:#667085!important}.proofRail{display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:16px;background:#fffffff7;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.proofStep{font-size:9px;font-weight:850;color:#98a2b3;padding:6px 8px;border-radius:999px;background:#f6f7f9;white-space:nowrap}.proofStep.active{background:#111;color:#fff}.proofStep.done{background:#eefbf4;color:#087443}.proofArrow{color:#b0b7c2;font-size:10px}.proofDetail{margin-left:4px;font-size:10px;color:#475467;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}.proofReset{border:1px solid #e4e7ec;background:#fff;border-radius:999px;padding:5px 8px;font-size:8px;font-weight:850;cursor:pointer}@media(max-width:650px){.proofDetail{display:none}.proofStep{font-size:8px;padding:5px 6px}}.shopSection{margin-top:34px}
   .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fff;padding:15px}
   .intelHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .intelTitle{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
@@ -106,6 +106,7 @@ function injectIntelligenceUI(){
   const intel=document.createElement("div");
   intel.id="nopeIntel";
   intel.innerHTML=`
+    <div class="proofRail"><span id="proofUI" class="proofStep active">1 · UI action</span><span class="proofArrow">→</span><span id="proofDB" class="proofStep">2 · DB memory</span><span class="proofArrow">→</span><span id="proofBackend" class="proofStep">3 · Backend reads</span><span class="proofArrow">→</span><span id="proofUIUpdate" class="proofStep">4 · UI changes</span><span id="proofDetail" class="proofDetail">Live proof: waiting for your first signal…</span><button id="resetDemo" class="proofReset" type="button">↺ Reset</button></div>
     <div class="intelCard">
       <div class="intelHead"><div class="intelTitle">🧠 NØPE intelligence</div><div class="intelLive">LIVE DECISION LAYER</div></div>
       <div class="label">I understood</div>
@@ -129,10 +130,19 @@ function injectIntelligenceUI(){
   store.appendChild(intel);
 }
 function sessionId(){let s=localStorage.getItem("nope_session_id");if(!s){s="sess_"+crypto.randomUUID();localStorage.setItem("nope_session_id",s)}return s}
+function proofStep(name,detail){
+  const ids={ui:"proofUI",db:"proofDB",backend:"proofBackend",update:"proofUIUpdate"},order=["ui","db","backend","update"],idx=order.indexOf(name);
+  order.forEach((k,i)=>{const el=document.getElementById(ids[k]);if(el){el.classList.toggle("active",i===idx);el.classList.toggle("done",i<idx)}});
+  const d=document.getElementById("proofDetail");if(d)d.textContent=detail||"";
+}
 async function recordSignal(preference,value,reason,source,signal_type="inferred",confidence="medium"){
   try{
+    proofStep("ui","Captured: "+(value||preference)+" · source="+source);
     const saved=await mcp("record_preference",{user_id:"demo-user",preference,value,reason,confidence,session_id:sessionId(),source,signal_type});
-    if(saved?.status==="SAVED") refreshSessionView();
+    if(saved?.status==="SAVED"){
+      proofStep("db","Stored in Postgres · "+preference+" = "+value);
+      await refreshSessionView();
+    }
     return saved;
   }catch(e){console.warn("Preference signal not saved",e);return null}
 }
@@ -155,20 +165,21 @@ async function refreshSessionView(){
     const sourceCounts={voice:0,text:0,ui:0}; prefs.forEach(p=>{const s=String(p.source||"agent").toLowerCase(); if(s==="voice")sourceCounts.voice++; else if(s==="text")sourceCounts.text++; else if(s==="ui")sourceCounts.ui++;}); root.innerHTML='<div class="memoryHeader"><div><div class="prefLabel">THIS SESSION</div><div style="font-size:12px;font-weight:850">NØPE is building a decision profile</div></div><div class="sessionIdMini">'+sessionId().slice(0,15)+'…</div></div><div class="prefGrid"><div><div class="prefLabel">AVOID / REJECTED</div>'+(groups.avoid.join("")||'<div class="emptyMemory">Nothing rejected yet</div>')+'</div><div><div class="prefLabel">LIKES / CONSTRAINTS</div>'+(groups.like.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div></div><div class="memorySection"><div class="memorySectionTitle">SIGNALS BY SOURCE</div><div class="understood" style="margin-top:6px"><span class="signal">🎙 Voice · '+sourceCounts.voice+'</span><span class="signal">⌨ Text · '+sourceCounts.text+'</span><span class="signal">👆 UI · '+sourceCounts.ui+'</span></div></div><div class="sessionFoot">Stored for this session · '+prefs.length+' signals · used in ranking</div>';
   }catch(e){console.warn(e)}
 }
-function captureIntentSignals(text,source){
-  const q=String(text||"").toLowerCase();
-  if(/shiny|chamak|flashy|glitter|satin|silk finish/.test(q)) recordSignal("finish","avoid shiny/flashy","User explicitly rejected shiny or flashy finishes",source,"explicit","high");
-  if(/formal|uncle|office-like|corporate/.test(q)) recordSignal("formality","avoid overly formal","User indicated they do not want a formal or office-like look",source,"explicit","high");
-  if(/relaxed|casual|comfortable|comfy|easy/.test(q)) recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium");
-  if(/classy|elegant|clean|minimal|understated/.test(q)) recordSignal("style","prefer clean and understated","Current request indicates a clean, understated style",source,"inferred","medium");
-  if(/youthful|young|trendy|cool/.test(q)) recordSignal("style","prefer youthful","Current request indicates a youthful/trendy preference",source,"inferred","medium");
-  if(/linen|cotton|denim|corduroy/.test(q)){const m=q.match(/linen|cotton|denim|corduroy/);recordSignal("material","prefer "+m[0],"Material mentioned in current request",source,"explicit","high")}
-  if(/black|navy|blue|white|ivory|beige|sand|sage|rust/.test(q)){const m=q.match(/black|navy|blue|white|ivory|beige|sand|sage|rust/);recordSignal("colour","prefer "+m[0],"Colour mentioned in current request",source,"explicit","high")}
-  if(/slim|fitted|tailored/.test(q)) recordSignal("fit","prefer fitted","Fit mentioned in current request",source,"explicit","high");
-  if(/oversized|loose|baggy/.test(q)) recordSignal("fit","prefer loose/oversized","Fit mentioned in current request",source,"explicit","high");
-  if(/breathable|summer|heat|garmi/.test(q)) recordSignal("comfort","prefer breathable","Comfort requirement detected",source,"inferred","medium");
-  if(/party|club|night out/.test(q)) recordSignal("occasion","prefer party/night-out","Occasion detected in current request",source,"explicit","high");
-  const bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i); if(bm) recordSignal("budget","up to ₹"+bm[1],"Budget stated in current request",source,"explicit","high");
+async function captureIntentSignals(text,source){
+  const q=String(text||"").toLowerCase(), jobs=[];
+  if(/shiny|chamak|flashy|glitter|satin|silk finish/.test(q)) jobs.push(recordSignal("finish","avoid shiny/flashy","User explicitly rejected shiny or flashy finishes",source,"explicit","high"));
+  if(/formal|uncle|office-like|corporate/.test(q)) jobs.push(recordSignal("formality","avoid overly formal","User indicated they do not want a formal or office-like look",source,"explicit","high"));
+  if(/relaxed|casual|comfortable|comfy|easy/.test(q)) jobs.push(recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium"));
+  if(/classy|elegant|clean|minimal|understated/.test(q)) jobs.push(recordSignal("style","prefer clean and understated","Current request indicates a clean, understated style",source,"inferred","medium"));
+  if(/youthful|young|trendy|cool/.test(q)) jobs.push(recordSignal("style","prefer youthful","Current request indicates a youthful/trendy preference",source,"inferred","medium"));
+  if(/linen|cotton|denim|corduroy/.test(q)){const m=q.match(/linen|cotton|denim|corduroy/);jobs.push(recordSignal("material","prefer "+m[0],"Material mentioned in current request",source,"explicit","high"))}
+  if(/black|navy|blue|white|ivory|beige|sand|sage|rust/.test(q)){const m=q.match(/black|navy|blue|white|ivory|beige|sand|sage|rust/);jobs.push(recordSignal("colour","prefer "+m[0],"Colour mentioned in current request",source,"explicit","high"))}
+  if(/slim|fitted|tailored/.test(q)) jobs.push(recordSignal("fit","prefer fitted","Fit mentioned in current request",source,"explicit","high"));
+  if(/oversized|loose|baggy/.test(q)) jobs.push(recordSignal("fit","prefer loose/oversized","Fit mentioned in current request",source,"explicit","high"));
+  if(/breathable|summer|heat|garmi/.test(q)) jobs.push(recordSignal("comfort","prefer breathable","Comfort requirement detected",source,"inferred","medium"));
+  if(/party|club|night out/.test(q)) jobs.push(recordSignal("occasion","prefer party/night-out","Occasion detected in current request",source,"explicit","high"));
+  const bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i); if(bm) jobs.push(recordSignal("budget","up to ₹"+bm[1],"Budget stated in current request",source,"explicit","high"));
+  await Promise.all(jobs);
 }
 function updateIntelligence(q,found,picks){
   const text=String(q||"").toLowerCase();
@@ -235,15 +246,19 @@ function installRecommendationActions(items){
       stage("Preference signal detected","You skipped an option. NØPE inferred what to avoid without asking another question.","nMemory");
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
+      proofStep("db","Rejection stored in Postgres · "+inferred.preference+" = "+inferred.value);
       showLearnedMemory(inferred.value,inferred.reason);
       learnTaste(p,-1.8,"skip");
       stage("Memory updated","NØPE is testing a different direction.","nCatalog");
+      const freshMemory=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
+      proofStep("backend","Backend re-read "+(freshMemory.count||freshMemory.preferences?.length||0)+" stored signal(s) before ranking");
       const avoidTerms=inferred.preference==="formality"?"formal":inferred.preference==="finish"?"shiny":"formal,shiny";
       const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:avoidTerms});
       const products=found.results||[];
-      const ranked=products.length?(await mcp("rank_products",{products,preferences:[{preference:inferred.preference,value:inferred.value}],intent:transcript})).results||products:products;
+      const ranked=products.length?(await mcp("rank_products",{products,preferences:freshMemory.preferences||[],intent:transcript})).results||products:products;
       const candidates=[...ranked,...SHOP_PRODUCTS].filter((x,i,a)=>x&&a.findIndex(y=>y.name===x.name)===i).sort((a,b)=>productScore(b,0)-productScore(a,0));
       renderShopCore(candidates.slice(0,8));
+      proofStep("update","UI changed after ranking against the freshly fetched DB memory");
       updateIntelligence(transcript,{count:products.length},candidates.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
       setStatus("✓ Learned from rejection and changed the shortlist","ok");
@@ -261,6 +276,12 @@ function installGuidedDemo(){
   };
 }
 injectIntelligenceUI();
+const resetDemoBtn=document.getElementById("resetDemo");
+if(resetDemoBtn)resetDemoBtn.onclick=async()=>{
+  resetDemoBtn.disabled=true;resetDemoBtn.textContent="Resetting…";
+  try{const oldSession=sessionId();await fetch("/api/demo/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:"demo-user"})});localStorage.removeItem("nope_session_id");sessionStorage.removeItem("nope_open_signal");localStorage.removeItem("nope_taste_"+oldSession);location.reload();}
+  catch(e){resetDemoBtn.disabled=false;resetDemoBtn.textContent="↺ Reset";setStatus("Reset failed: "+e.message,"err")}
+};
 const C={
 linen:["#efe2c7","#d7c09a","#879f82","#496d64","#c76f52","#354b5c"],
 blue:["#dce8f2","#93b6cf","#466f91","#223b57","#d19a68","#6e7d89"],
@@ -431,13 +452,14 @@ async function runNopeVoice(){
  const style=/relaxed|casual|chill|youthful|stylish/.test(q)?"classy relaxed":(/classy/.test(q)?"classy":null);
  stage("Reading preference memory","Retrieving learned likes, dislikes and rejection signals.","nMemory");
  const prefs=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
+ proofStep("backend","Backend fetched "+(prefs.count||prefs.preferences?.length||0)+" stored preference signal(s) from Postgres");
  $("memoryText").textContent=(prefs.preferences||[]).slice(0,4).map(p=>(p.preference||"signal")+": "+(p.value||"")).join(" · ")||"No stored preference signal yet.";
  stage("Searching product catalogue","Filtering the mock catalogue against the current intent.","nCatalog");
  const found=await mcp("search_products",{category,max_price:budget,occasion,style,avoid}), products=found.results||[];
  $("catalogue").innerHTML=products.slice(0,4).map(p=>'<div class="product"><div class="pname">'+p.name+'</div><div class="price">₹'+p.price+'</div><span class="tag">'+(p.category||"shirt")+" · returned</span></div>").join("")||'<div class="product"><div class="pname">No matching products</div></div>';
  let ranked=products;
  if(products.length){const rr=await mcp("rank_products",{products,preferences:prefs.preferences||[],intent:transcript});ranked=rr.results||products}
- if(ranked.length)renderShopMatches(ranked);
+ if(ranked.length){renderShopMatches(ranked);proofStep("update","UI re-ranked "+ranked.length+" products using the fetched memory");}
  const picks=ranked.slice(0,3);
  updateIntelligence(transcript,found,picks);
  const reply=picks.length?"Yay... aapke liye kuch really lovely options mil gaye hain. Mainne "+picks.length+" options shortlist kiye hain. "+picks.map((p,i)=>(i+1)+". "+p.name+" — rupees "+p.price).join(". ")+" . Inmein se pehla option mujhe especially aapki current style, occasion aur budget ke liye achchha lag raha hai. Aap aaraam se dekhiye. Aur agar koi option bilkul aapke type ka na lage, mujhe bas bata dena ki kya pasand nahi aaya. Main us feedback ko samajh kar next options aur better kar dungi.":"Hmm... abhi mujhe aapke liye exact match nahi mila. But no worries at all. Aap bas mujhe bata dijiye ki budget ya style mein kya change karna hai... main calmly dobara search karke aapke liye better options dhoondhungi.";
@@ -449,7 +471,7 @@ async function runNopeVoice(){
  try{await audio.play()}catch(e){console.warn("Autoplay blocked; audio controls remain available.",e)}
  hint.textContent="NØPE replied — click 🎙️ to speak again";setStatus("✓ Full voice loop complete","ok");
 }
-async function processTranscript(text,source="text"){transcript=String(text||"").trim();if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}captureIntentSignals(transcript,source);transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
+async function processTranscript(text,source="text"){transcript=String(text||"").trim();if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}proofStep("ui","Intent received from "+source+" · extracting signals");await captureIntentSignals(transcript,source);transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
 async function start(){
  setStatus("🎙 Click registered — requesting microphone…","ok");
  if(!navigator.mediaDevices?.getUserMedia)throw Error("Microphone API unavailable. Use Chrome or Edge over HTTPS.");
