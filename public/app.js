@@ -12,7 +12,7 @@ function injectIntelligenceUI(){
   if(!store||document.getElementById("nopeIntel"))return;
   const s=document.createElement("style");
   s.textContent=`
-  #nopeIntel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9990;display:block;width:min(760px,calc(100vw - 28px));margin:0;pointer-events:none}.intelCard{display:none!important}.intelCard:last-child{display:flex!important;align-items:center;justify-content:center;gap:10px;padding:9px 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fffffff5;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.intelHead,#memoryLive,#sessionMemory,#demoRun{display:none!important}.learningHint{margin:0!important;font-size:10px!important;color:#667085!important}.proofRail{display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:16px;background:#fffffff7;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.proofStep{font-size:9px;font-weight:850;color:#98a2b3;padding:6px 8px;border-radius:999px;background:#f6f7f9;white-space:nowrap}.proofStep.active{background:#111;color:#fff}.proofStep.done{background:#eefbf4;color:#087443}.proofArrow{color:#b0b7c2;font-size:10px}.proofDetail{margin-left:4px;font-size:10px;color:#475467;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}.proofReset{border:1px solid #e4e7ec;background:#fff;border-radius:999px;padding:5px 8px;font-size:8px;font-weight:850;cursor:pointer}@media(max-width:650px){.proofDetail{display:none}.proofStep{font-size:8px;padding:5px 6px}}.shopSection{margin-top:34px}
+  #nopeIntel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9990;display:block;width:min(760px,calc(100vw - 28px));margin:0;pointer-events:none}.intelCard{display:none!important}.intelCard:last-child{display:flex!important;align-items:center;justify-content:center;gap:10px;padding:9px 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fffffff5;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.intelHead,#memoryLive,#sessionMemory,#demoRun{display:none!important}.learningHint{margin:0!important;font-size:10px!important;color:#667085!important}.proofRail{display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:16px;background:#fffffff7;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.proofStep{font-size:9px;font-weight:850;color:#98a2b3;padding:6px 8px;border-radius:999px;background:#f6f7f9;white-space:nowrap}.proofStep.active{background:#111;color:#fff}.proofStep.done{background:#eefbf4;color:#087443}.proofArrow{color:#b0b7c2;font-size:10px}.proofDetail{margin-left:4px;font-size:10px;color:#475467;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}.proofReset{border:1px solid #e4e7ec;background:#fff;border-radius:999px;padding:5px 8px;font-size:8px;font-weight:850;cursor:pointer}.demoExperiment{margin:14px 0 2px;padding:11px 13px;border:1px solid #e7e9ee;border-radius:14px;background:#fbfcfd;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}.demoExperimentLabel{font-size:8px;font-weight:950;letter-spacing:.11em;color:#98a2b3;white-space:nowrap}.demoHypothesis{font-size:11px;font-weight:850;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.demoOutcome{font-size:10px;color:#667085;text-align:right;white-space:nowrap}.demoOutcome strong{color:#087443}@media(max-width:700px){.demoExperiment{grid-template-columns:1fr;gap:4px}.demoOutcome{text-align:left}}@media(max-width:650px){.proofDetail{display:none}.proofStep{font-size:8px;padding:5px 6px}}.shopSection{margin-top:34px}
   .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fff;padding:15px}
   .intelHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .intelTitle{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
@@ -127,6 +127,13 @@ function injectIntelligenceUI(){
       <div class="learningHint">NØPE learns from voice, text and lightweight choices — not just questionnaires.</div>
       <button id="demoRun" class="shopBtn demoBtn" type="button">▶ Run guided NØPE demo</button>
     </div>`;
+  const experiment=document.createElement("div");
+  experiment.id="demoExperiment";
+  experiment.className="demoExperiment";
+  experiment.innerHTML='<div class="demoExperimentLabel">LIVE LEARNING TEST</div><div id="demoHypothesis" class="demoHypothesis">Baseline · NØPE has no preference hypothesis yet.</div><div id="demoOutcome" class="demoOutcome">Your next action becomes evidence.</div>';
+  const shopSection=store.querySelector(".shopSection");
+  if(shopSection)shopSection.parentNode.insertBefore(experiment,shopSection);
+  else store.appendChild(experiment);
   store.appendChild(intel);
 }
 function sessionId(){let s=localStorage.getItem("nope_session_id");if(!s){s="sess_"+crypto.randomUUID();localStorage.setItem("nope_session_id",s)}return s}
@@ -247,6 +254,9 @@ function installRecommendationActions(items){
       : {preference:"style",value:"avoid this style direction",reason:"Implicit UI rejection — NØPE inferred a negative style signal from the skipped recommendation"};
     try{
       proofStep("ui","UI rejection captured · NØPE is inferring what to avoid");
+      const h=document.getElementById("demoHypothesis"),o=document.getElementById("demoOutcome");
+      if(h)h.textContent="Hypothesis → "+inferred.value;
+      if(o)o.innerHTML="<strong>Testing now</strong> · Will this rejection change the next shortlist?";
       stage("Preference signal detected","You skipped an option. NØPE inferred what to avoid without asking another question.","nMemory");
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
@@ -268,6 +278,8 @@ function installRecommendationActions(items){
       renderShopCore(nextChoices);
       proofStep("update","UI changed after ranking against the freshly fetched DB memory");
       const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent="adapted · "+inferred.value;
+      const outcome=document.getElementById("demoOutcome");if(outcome){const removed=demoBaseline.filter(n=>!nextChoices.slice(0,8).some(x=>x.name===n));outcome.innerHTML="<strong>Confirmed</strong> · "+(removed.length?removed.length+" baseline option(s) moved out":"the shortlist was re-ranked")+" after the DB memory was re-read."}
+      const hypothesis=document.getElementById("demoHypothesis");if(hypothesis)hypothesis.textContent="Learned → "+inferred.value;
       updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
       setStatus("✓ Learned from rejection and changed the shortlist","ok");
@@ -326,6 +338,7 @@ const SHOP_PRODUCTS=[
 {id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",shape:"olive",colors:C.linen}
 ];
 let cart=[], recorder=null, chunks=[], recording=false, transcript="";
+let demoBaseline=[];
 const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
 
 function setStatus(t,c){if(statusEl){statusEl.textContent=t;statusEl.className="status "+(c||"")}}
@@ -431,6 +444,7 @@ function renderShopCore(items){
 function renderShop(filter){
  let items=SHOP_PRODUCTS;
  if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
+ if(!demoBaseline.length)demoBaseline=items.slice(0,8).map(p=>p.name);
  renderShopCore(items);
 }
 function renderShopMatches(items){
