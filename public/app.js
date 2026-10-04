@@ -287,7 +287,9 @@ function recordBehaviorSignal(preference,value,reason,signal_type="implicit",con
 }
 function productWords(p){return (((p?.name||"")+" "+(p?.meta||"")+" "+(p?.style||"")+" "+(p?.tags||[]).join(" "))).toLowerCase()}
 function showRejectionQuestion(p,inferred){
-  if(nudgeState.busy||document.hidden)return;
+  if(document.hidden)return;
+  const existingNudge=document.querySelector(".microNudge");if(existingNudge)existingNudge.remove();
+  nudgeState.busy=false;
   const raw=productWords(p),opts=[];
   if(/formal|structured|slim|fitted|tailored/.test(raw))opts.push(["Too formal",["formality","avoid overly formal / structured"]],["Too fitted",["fit","avoid very fitted cuts"]]);
   if(p.neck&&(p.garment||"").toLowerCase()==="shirt"&&Number(p.price||0)>=3000)opts.push(["Too expensive",["price","prefer a lower-priced "+(p.neck==="v"?"V-neck":"O-neck")+" T-shirt instead"]]);
