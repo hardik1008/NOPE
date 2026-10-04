@@ -49,7 +49,9 @@ function injectIntelligenceUI(){
   .sessionFoot{font-size:9px;color:#98a2b3;margin-top:8px}
   .learningHint{font-size:10px;color:#667085;margin-top:8px;line-height:1.4}
   .shopSection{margin-top:24px}
-  .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}.shopHeadline{font-size:29px;line-height:1.02;font-weight:900;letter-spacing:-.055em;margin:3px 0}.shopSub{font-size:11px;color:#667085;max-width:460px;line-height:1.45}.shopPulse{font-size:10px;color:#98a2b3;white-space:nowrap}
+  .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:12px}.shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}.shopHeadline{font-size:29px;line-height:1.02;font-weight:900;letter-spacing:-.055em;margin:3px 0}.shopSub{font-size:11px;color:#667085;max-width:460px;line-height:1.45}.shopPulse{font-size:10px;color:#98a2b3;white-space:nowrap}
+  .tasteLab{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:9px 10px;margin:0 0 14px;border:1px solid #eceef2;border-radius:14px;background:#fbfcfd}.tasteLabLabel{font-size:9px;font-weight:950;color:#98a2b3;letter-spacing:.08em;text-transform:uppercase}.tasteLabQuestion{font-size:10px;font-weight:850;color:#111}.tasteChip{border:1px solid #e2e5ea;background:#fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:850;cursor:pointer}.tasteChip:hover{border-color:#111}.tastePair{display:flex;align-items:center;gap:6px;margin-left:auto}.tastePair button{border:1px solid #e2e5ea;background:#fff;border-radius:10px;padding:6px 9px;font-size:9px;font-weight:850;cursor:pointer;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tastePair button:hover{border-color:#111}.tasteVs{font-size:8px;color:#98a2b3;font-weight:900}
+  .microNudge.rejectionNudge .microBubble{border-color:#e5dff7}.microNudge.rejectionNudge .microDot{background:#fff5f3}.microNudge.rejectionNudge .microKicker{color:#7c3aed}
   .shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}
   .shopHeadline{font-size:25px;line-height:1.08;font-weight:900;letter-spacing:-.04em;margin:4px 0}
   .shopSub{font-size:11px;color:#667085;max-width:520px;line-height:1.5}
@@ -253,6 +255,41 @@ function recordBehaviorSignal(preference,value,reason,signal_type="implicit",con
   // Capture useful shopping intent only; never raw keystrokes, mouse coordinates, or unrelated browsing.
   return recordSignal(preference,value,reason,"ui",signal_type,confidence);
 }
+function productWords(p){return (((p?.name||"")+" "+(p?.meta||"")+" "+(p?.style||"")+" "+(p?.tags||[]).join(" "))).toLowerCase()}
+function showRejectionQuestion(p,inferred){
+  if(nudgeState.busy||document.hidden)return;
+  const raw=productWords(p),opts=[];
+  if(/formal|structured|slim|fitted|tailored/.test(raw))opts.push(["Too formal",["formality","avoid overly formal / structured"]],["Too fitted",["fit","avoid very fitted cuts"]]);
+  if(/shiny|satin|gloss|silk|party/.test(raw))opts.push(["Too shiny",["finish","avoid shiny / glossy finishes"]],["Too party",["occasion","prefer less party-like pieces"]]);
+  if(/neon|loud|floral|bold|check/.test(raw))opts.push(["Too loud",["expression","avoid loud / expressive pieces"]],["Too colourful",["colour direction","prefer quieter colours"]]);
+  if(/linen|cotton|denim|corduroy/.test(raw))opts.push(["Not this fabric",["material","explore a different fabric"]]);
+  opts.push(["Just not this one",null]);
+  const unique=opts.filter((x,i,a)=>a.findIndex(y=>y[0]===x[0])===i).slice(0,3);
+  nudgeState.busy=true;
+  const el=document.createElement("div");el.className="microNudge rejectionNudge";el.innerHTML='<div class="microBubble"><div class="microTop"><span class="microDot">↩</span><span class="microKicker">NØPE noticed · 4 sec</span><button class="microClose" aria-label="Dismiss">×</button></div><div class="microQuestion">You skipped “'+p.name+'”. What was off?</div><div class="microOptions">'+unique.map((o,i)=>'<button class="microOption" data-rej="'+i+'">'+o[0]+'</button>').join("")+'</div><div class="microTimer"><i></i></div></div>';
+  document.body.appendChild(el);requestAnimationFrame(()=>el.classList.add("show"));
+  let timer=setTimeout(()=>dismiss(),4200);
+  function dismiss(){clearTimeout(timer);el.classList.remove("show");setTimeout(()=>el.remove(),220);nudgeState.busy=false}
+  el.querySelector(".microClose").onclick=()=>{recordBehaviorSignal("rejection question skipped",p.name,"User skipped a product-grounded follow-up question","rejection_question_dismiss","low");dismiss()};
+  el.querySelectorAll("[data-rej]").forEach(btn=>btn.onclick=async()=>{const chosen=unique[Number(btn.dataset.rej)];if(chosen[1]){await recordSignal(chosen[1][0],chosen[1][1],"User answered a product-grounded rejection question about "+p.name,"ui","rejection_feedback","high");showLearnedMemory(chosen[1][1],"User explained what felt wrong about "+p.name);learnTaste(p,-2.4,"rejection feedback")}else{recordBehaviorSignal("product rejection",p.name,"User said this specific product was simply not right","rejection_feedback","low")}setStatus("✓ NØPE got the reason and can choose better next time","ok");dismiss()});
+}
+function renderTasteLab(items){
+  const host=document.querySelector(".shopSection");if(!host)return;
+  let bar=document.getElementById("nopeTasteLab");if(!bar){bar=document.createElement("div");bar.id="nopeTasteLab";host.insertBefore(bar,document.getElementById("shopProducts"));}
+  const visible=items.slice(0,8);const words=visible.map(productWords).join(" ");const choices=[];
+  if(/relaxed|easy|casual|resort|cuban|camp/.test(words))choices.push(["More relaxed","style","prefer more relaxed pieces"]);
+  if(/minimal|clean|understated/.test(words))choices.push(["More minimal","style","prefer cleaner and more minimal pieces"]);
+  if(/linen/.test(words))choices.push(["More linen","material","prefer linen pieces"]);
+  if(/shiny|satin|gloss/.test(words))choices.push(["Less shiny","finish","prefer matte / low-shine finishes"]);
+  if(/bold|neon|floral|colour|bright/.test(words))choices.push(["More colour","colour direction","prefer bolder colours"]);
+  const selected=choices.slice(0,4);
+  const a=visible[0],b=visible[1];
+  bar.innerHTML='<span class="tasteLabLabel">TEACH NØPE</span><span class="tasteLabQuestion">One tap is enough:</span>'+selected.map((x,i)=>'<button class="tasteChip" data-teach="'+i+'">'+x[0]+'</button>').join("")+(a&&b?'<span class="tastePair"><span class="tasteVs">OR</span><button data-pair="0" title="'+a.name+'">'+a.name+'</button><span class="tasteVs">vs</span><button data-pair="1" title="'+b.name+'">'+b.name+'</button></span>':"");
+  bar.querySelectorAll("[data-teach]").forEach(btn=>btn.onclick=async()=>{const c=selected[Number(btn.dataset.teach)];if(!c)return;await recordSignal(c[1],c[2],"User used the one-tap Teach NØPE control","ui","teach_nudge","medium");learnTasteByValue(c[1],c[2]);await rerankFromMemory(c[2]);setStatus("✓ NØPE updated from one tap: "+c[0],"ok")});
+  bar.querySelectorAll("[data-pair]").forEach(btn=>btn.onclick=async()=>{const chosen=Number(btn.dataset.pair)===0?a:b;if(!chosen)return;await recordSignal("pairwise choice",chosen.name,"User picked this product when comparing two available products","ui","pairwise_choice","medium");inferProductAffinity(chosen);learnTaste(chosen,1.3,"pairwise choice");await rerankFromMemory("prefer the attributes of "+chosen.name);setStatus("✓ NØPE learned from your choice between two real products","ok")});
+}
+function learnTasteByValue(preference,value){const v=String(value||"").toLowerCase();if(v.includes("relaxed"))tasteModel.relaxed=(tasteModel.relaxed||0)+1.3;if(v.includes("minimal")||v.includes("cleaner"))tasteModel.minimal=(tasteModel.minimal||0)+1.1;if(v.includes("linen"))tasteModel.linen=(tasteModel.linen||0)+1.1;if(v.includes("matte"))tasteModel.shiny=(tasteModel.shiny||0)-1.4;if(v.includes("bolder"))tasteModel["bold-color"]=(tasteModel["bold-color"]||0)+1.1;localStorage.setItem(tasteKey,JSON.stringify(tasteModel))}
+async function rerankFromMemory(extraIntent=""){try{const mem=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});const ranked=await mcp("rank_products",{products:SHOP_PRODUCTS,preferences:mem.preferences||[],intent:(transcript||"Find products I may like")+" "+extraIntent});const names=(ranked.results||[]).map(x=>x.name);const lead=names.map(n=>SHOP_PRODUCTS.find(x=>x.name===n)).filter(Boolean);const rest=SHOP_PRODUCTS.filter(x=>!lead.some(y=>y.id===x.id));renderShopCore([...lead,...rest].slice(0,8))}catch(e){console.warn("Could not re-rank after taste input",e)}}
 function installBehavioralLearning(items){
   document.querySelectorAll(".shopProduct").forEach((card,i)=>{
     const p=items[i];if(!p)return;let timer=null,entered=0,viewed=false;
@@ -285,12 +322,14 @@ function installRecommendationActions(items){
       const h=document.getElementById("demoHypothesis"),o=document.getElementById("demoOutcome");
       if(h)h.textContent="Hypothesis → "+inferred.value;
       if(o)o.innerHTML="<strong>Testing now</strong> · Will this rejection change the next shortlist?";
-      stage("Preference signal detected","You skipped an option. NØPE inferred what to avoid without asking another question.","nMemory");
+      stage("Preference signal detected","You skipped an option. NØPE made a first guess — now it can ask a tiny, product-specific question to make that guess smarter.","nMemory");
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
       proofStep("db","Rejection stored in Postgres · "+inferred.preference+" = "+inferred.value);
       await refreshSessionView();
       showLearnedMemory(inferred.value,inferred.reason);
+      const openNudge=document.querySelector(".microNudge");if(openNudge)openNudge.remove();nudgeState.busy=false;
+      showRejectionQuestion(p,inferred);
       learnTaste(p,-1.8,"skip");
       stage("Memory updated","NØPE is testing a different direction.","nCatalog");
       const freshMemory=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
@@ -466,6 +505,7 @@ function adaptShop(items){
 }
 function renderShopCore(items){
  const root=$("shopProducts");root.innerHTML=items.map(productCard).join("");
+ renderTasteLab(items);
  root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("add intent",p.name,"User chose to move this product toward purchase","add_click","medium");learnTaste(p,2,"add to bag");addToCart(p,b);});
  root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
  root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const p=items[i];if(!p)return;const isSaved=savedProducts.has(p.id);if(isSaved){savedProducts.delete(p.id);b.textContent="♡";b.classList.remove("saved");b.setAttribute("aria-label","Favourite");persistSavedProducts();await mcp("remove_preference",{user_id:"demo-user",preference:"save affinity",value:p.name,session_id:sessionId()});recordBehaviorSignal("unsave action",p.name,"User unfavourited this product","unsave_click","low");setStatus(p.name+" removed from favourites.","ok");await refreshSessionView();}else{savedProducts.add(p.id);b.textContent="♥";b.classList.add("saved");b.setAttribute("aria-label","Unfavourite");persistSavedProducts();await recordSignal("save affinity",p.name,"User saved this product","ui","save","medium");learnTaste(p,1.4,"save");setStatus(p.name+" saved to favourites.","ok")}});
