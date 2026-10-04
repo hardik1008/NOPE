@@ -106,7 +106,7 @@ function injectIntelligenceUI(){
   const intel=document.createElement("div");
   intel.id="nopeIntel";
   intel.innerHTML=`
-    <div class="proofRail"><span id="proofUI" class="proofStep active">1 · UI action</span><span class="proofArrow">→</span><span id="proofDB" class="proofStep">2 · DB memory</span><span class="proofArrow">→</span><span id="proofBackend" class="proofStep">3 · Backend reads</span><span class="proofArrow">→</span><span id="proofUIUpdate" class="proofStep">4 · UI changes</span><span id="proofDetail" class="proofDetail">Live proof: waiting for your first signal…</span><button id="resetDemo" class="proofReset" type="button">↺ Reset</button></div>
+    <div class="proofRail"><span id="proofUI" class="proofStep active">1 · UI action</span><span class="proofArrow">→</span><span id="proofDB" class="proofStep">2 · Postgres memory</span><span class="proofArrow">→</span><span id="proofBackend" class="proofStep">3 · NØPE reads memory</span><span class="proofArrow">→</span><span id="proofUIUpdate" class="proofStep">4 · UI adapts</span><span id="proofDetail" class="proofDetail">Live proof: waiting for your first signal…</span><button id="resetDemo" class="proofReset" type="button">↺ Reset</button></div>
     <div class="intelCard">
       <div class="intelHead"><div class="intelTitle">🧠 NØPE intelligence</div><div class="intelLive">LIVE DECISION LAYER</div></div>
       <div class="label">I understood</div>
@@ -153,9 +153,10 @@ async function refreshSessionView(){
     const root=document.getElementById("sessionMemory"); if(!root)return;
     const prefs=d.session_preferences||[];
     const profile=d.profile_preferences||[];
-    if(!prefs.length&&!profile.length){root.innerHTML='<div class="emptyMemory">No preference signals yet. NØPE will learn from what you say and what you choose.</div>';return}
+    const meaningful=prefs.filter(p=>String(p.confidence||"").toLowerCase()!=="low" || String(p.signal_type||"").toLowerCase()==="rejection");
+    if(!meaningful.length){root.innerHTML='<div class="emptyMemory">No high-value preference signal yet. NØPE is quietly observing.</div><div class="sessionFoot">'+prefs.length+' low-confidence interaction signal(s) observed</div>';return}
     const groups={hard:[],like:[],avoid:[],signals:[]};
-    prefs.slice(0,12).forEach(p=>{
+    meaningful.slice(0,12).forEach(p=>{
       const text=(p.preference+" "+p.value+" "+(p.reason||"")).toLowerCase();
       const item='<div class="prefItem"><span class="prefMain">'+(p.value||p.preference)+'</span><span class="prefMeta">'+(p.source||"agent")+' · '+(p.confidence||"medium")+'</span>'+(p.reason?'<div class="prefReason">'+p.reason+'</div>':'')+'</div>';
       if(/avoid|hate|dislike|no |not |formal|shiny/.test(text))groups.avoid.push(item);
@@ -239,8 +240,10 @@ function installRecommendationActions(items){
     const raw=((p.style||"")+" "+(p.meta||"")+" "+(p.tags||[]).join(" ")+" "+(local?.meta||"")).toLowerCase();
     const inferred=raw.includes("formal")||raw.includes("structured")||raw.includes("elegant")
       ? {preference:"formality",value:"avoid overly formal / structured",reason:"Implicit UI rejection of a formal-looking recommendation"}
-      : raw.includes("shiny")||raw.includes("party")
+      : raw.includes("shiny")||raw.includes("satin")||raw.includes("gloss")||raw.includes("party")
       ? {preference:"finish",value:"avoid shiny / party finishes",reason:"Implicit UI rejection of a shiny or party-style recommendation"}
+      : raw.includes("neon")||raw.includes("loud")||raw.includes("floral")||raw.includes("bold")||raw.includes("check")
+      ? {preference:"expression",value:"avoid loud / expressive pieces",reason:"Implicit UI rejection of a loud or highly expressive recommendation"}
       : {preference:"style",value:"avoid this style direction",reason:"Implicit UI rejection — NØPE inferred a negative style signal from the skipped recommendation"};
     try{
       proofStep("ui","UI rejection captured · NØPE is inferring what to avoid");
@@ -254,14 +257,18 @@ function installRecommendationActions(items){
       stage("Memory updated","NØPE is testing a different direction.","nCatalog");
       const freshMemory=await mcp("get_preferences",{user_id:"demo-user",session_id:sessionId()});
       proofStep("backend","Backend re-read "+(freshMemory.count||freshMemory.preferences?.length||0)+" stored signal(s) before ranking");
-      const avoidTerms=inferred.preference==="formality"?"formal":inferred.preference==="finish"?"shiny":"formal,shiny";
+      const avoidTerms=inferred.preference==="formality"?"formal":inferred.preference==="finish"?"shiny":inferred.preference==="expression"?"loud,expressive":"formal,shiny";
       const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:avoidTerms});
       const products=found.results||[];
-      const ranked=products.length?(await mcp("rank_products",{products,preferences:freshMemory.preferences||[],intent:transcript})).results||products:products;
-      const candidates=[...ranked,...SHOP_PRODUCTS].filter((x,i,a)=>x&&a.findIndex(y=>y.name===x.name)===i).sort((a,b)=>productScore(b,0)-productScore(a,0));
-      renderShopCore(candidates.slice(0,8));
+      const ranked=await mcp("rank_products",{products:SHOP_PRODUCTS,preferences:freshMemory.preferences||[],intent:transcript+" "+inferred.value});
+      const rankedNames=(ranked.results||[]).map(x=>x.name);
+      const candidates=rankedNames.map(name=>SHOP_PRODUCTS.find(x=>x.name===name)).filter(Boolean);
+      const fallback=SHOP_PRODUCTS.filter(p=>!candidates.some(x=>x.id===p.id));
+      const nextChoices=[...candidates,...fallback].slice(0,8);
+      renderShopCore(nextChoices);
       proofStep("update","UI changed after ranking against the freshly fetched DB memory");
-      updateIntelligence(transcript,{count:products.length},candidates.slice(0,3));
+      const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent="adapted · "+inferred.value;
+      updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
       setStatus("✓ Learned from rejection and changed the shortlist","ok");
     }catch(e){setStatus("Learning error: "+e.message,"err")}
@@ -294,12 +301,12 @@ bright:["#f4e2c4","#e8c84a","#ee713f","#d74668","#5fae9d","#5d73c7"],
 neutral:["#f2f0ea","#d3d0c8","#a5aaa8","#6d7374","#4d5961","#b9a28a"]
 };
 const SHOP_PRODUCTS=[
+{id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",shape:"executive",colors:C.blue},
 {id:"linen-resort",name:"Linen Blend Resort Shirt",price:2499,meta:"NØPE Atelier · Linen blend · Relaxed · Wedding",shape:"resort",colors:C.linen},
+{id:"black-satin",name:"Black Satin Night Shirt",price:2199,meta:"After Dark · Satin · Shiny",shape:"satin",colors:C.dark},
+{id:"neon-lime",name:"Lime Statement Camp Shirt",price:1799,meta:"After Dark · Neon · Loud",shape:"neon",colors:C.bright},
 {id:"textured-oxford",name:"Textured Oxford Casual Shirt",price:2299,meta:"Textured cotton · Smart casual",shape:"oxford",colors:C.blue},
 {id:"cuban-collar",name:"Cotton Cuban Collar Shirt",price:1999,meta:"Cotton · Relaxed · Easy",shape:"cuban",colors:C.earth},
-{id:"relaxed-linen",name:"Relaxed Linen Shirt",price:2399,meta:"Linen · Airy · Classy",shape:"linen",colors:C.pastel},
-{id:"navy-oxford",name:"Navy Oxford Shirt",price:2199,meta:"Oxford · Clean · Versatile",shape:"formal",colors:C.blue},
-{id:"sand-cuban",name:"Sand Cuban Collar",price:1899,meta:"Cotton · Casual · Youthful",shape:"boxy",colors:C.earth},
 {id:"camp-collar",name:"Camp Collar Resort Shirt",price:1899,meta:"Sunday Club · Printed · Relaxed",shape:"camp",colors:C.bright},
 {id:"sage-linen",name:"Sage Linen Cuban Shirt",price:2499,meta:"Casa Linen · Linen · Wedding",shape:"mandarin",colors:C.linen},
 {id:"navy-check",name:"Navy Micro-Check Shirt",price:2199,meta:"NØPE Atelier · Clean · Smart casual",shape:"check",colors:C.blue},
@@ -308,10 +315,7 @@ const SHOP_PRODUCTS=[
 {id:"rust-overshirt",name:"Rust Corduroy Overshirt",price:2799,meta:"Sunday Club · Corduroy · Layering",shape:"overshirt",colors:C.earth},
 {id:"performance-polo",name:"Charcoal Performance Polo",price:1599,meta:"NØPE Sport · Stretch · Breathable",shape:"polo",colors:C.dark},
 {id:"minimal-tee",name:"White Minimal Oversized Tee",price:999,meta:"NØPE Basics · Oversized · Minimal",shape:"tee",colors:C.neutral},
-{id:"black-satin",name:"Black Satin Night Shirt",price:2199,meta:"After Dark · Satin · Shiny",shape:"satin",colors:C.dark},
-{id:"neon-lime",name:"Lime Statement Camp Shirt",price:1799,meta:"After Dark · Neon · Loud",shape:"neon",colors:C.bright},
 {id:"floral-punch",name:"Tropical Floral Shirt",price:1999,meta:"Sunday Club · Floral · Loud",shape:"floral",colors:C.bright},
-{id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",shape:"executive",colors:C.blue},
 {id:"skinny-white",name:"Sharp Slim White Shirt",price:1899,meta:"Monarch · Fitted · Formal",shape:"slim",colors:C.neutral},
 {id:"purple-satin",name:"Purple Gloss Party Shirt",price:2399,meta:"After Dark · Gloss · Party",shape:"gloss",colors:C.pastel},
 {id:"orange-pop",name:"Orange Pop Cuban Shirt",price:1699,meta:"Weekend · Orange · Bold",shape:"orange",colors:C.bright},

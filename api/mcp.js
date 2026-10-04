@@ -360,7 +360,15 @@ export default async function (req, res) {
       const products = Array.isArray(args.products) ? args.products : [];
       const prefs = Array.isArray(args.preferences) ? args.preferences : [];
       const textBlob = JSON.stringify(prefs).toLowerCase() + " " + String(args.intent || "").toLowerCase();
-      const ranked = products.map(p => {
+      const filtered = products.filter(p => {
+        const hay = JSON.stringify(p).toLowerCase();
+        if (/(avoid overly formal|avoid formal|not formal)/.test(textBlob) && /formal|structured|executive|slim/.test(hay)) return false;
+        if (/(avoid shiny|avoid .*party|avoid .*gloss)/.test(textBlob) && /shiny|satin|gloss|party/.test(hay)) return false;
+        if (/avoid loud|avoid .*expressive/.test(textBlob) && /loud|floral|neon|bold|check|graphic/.test(hay)) return false;
+        return true;
+      });
+      const pool = filtered.length ? filtered : products;
+      const ranked = pool.map(p => {
         let score = 50;
         const tags = Array.isArray(p.tags) ? p.tags.join(" ").toLowerCase() : "";
         const hay = JSON.stringify(p).toLowerCase();
@@ -369,6 +377,7 @@ export default async function (req, res) {
         if (textBlob.includes("youthful") && (tags.includes("youthful") || hay.includes("youthful"))) score += 10;
         if (textBlob.includes("formal") && (tags.includes("formal") || hay.includes("formal"))) score -= 25;
         if (textBlob.includes("shiny") && (tags.includes("shiny") || hay.includes("shiny"))) score -= 30;
+        if (textBlob.includes("avoid loud") && /loud|floral|neon|bold|check/.test(hay)) score -= 25;
         return {...p, fit_score: Math.max(0, Math.min(100, score))};
       }).sort((a,b)=>b.fit_score-a.fit_score).slice(0,4);
       return res.json(jsonRpc(id,{content:[{type:"text",text:JSON.stringify({results:ranked})}],isError:false}));
