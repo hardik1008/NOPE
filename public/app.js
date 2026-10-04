@@ -106,7 +106,7 @@ function injectIntelligenceUI(){
   const intel=document.createElement("div");
   intel.id="nopeIntel";
   intel.innerHTML=`
-    <div class="proofRail"><span id="proofUI" class="proofStep active">1 · UI action</span><span class="proofArrow">→</span><span id="proofDB" class="proofStep">2 · Postgres memory</span><span class="proofArrow">→</span><span id="proofBackend" class="proofStep">3 · NØPE reads memory</span><span class="proofArrow">→</span><span id="proofUIUpdate" class="proofStep">4 · UI adapts</span><span id="proofDetail" class="proofDetail">Live proof: waiting for your first signal…</span><button id="resetDemo" class="proofReset" type="button">↺ Reset</button></div>
+    <div class="proofRail"><span id="proofUI" class="proofStep active">1 · UI action</span><span class="proofArrow">→</span><span id="proofDB" class="proofStep">2 · Postgres memory</span><span class="proofArrow">→</span><span id="proofBackend" class="proofStep">3 · NØPE reads memory</span><span class="proofArrow">→</span><span id="proofUIUpdate" class="proofStep">4 · UI adapts</span><span id="proofDetail" class="proofDetail">Live proof: waiting for your first signal…</span><button id="agenticOpen" class="proofReset" type="button">AgenticOrg ↗</button><button id="resetDemo" class="proofReset" type="button">↺ Reset</button></div>
     <div class="intelCard">
       <div class="intelHead"><div class="intelTitle">🧠 NØPE intelligence</div><div class="intelLive">LIVE DECISION LAYER</div></div>
       <div class="label">I understood</div>
@@ -130,7 +130,7 @@ function injectIntelligenceUI(){
   const experiment=document.createElement("div");
   experiment.id="demoExperiment";
   experiment.className="demoExperiment";
-  experiment.innerHTML='<div class="demoExperimentLabel">LIVE LEARNING TEST</div><div id="demoHypothesis" class="demoHypothesis">Baseline · NØPE has no preference hypothesis yet.</div><div id="demoOutcome" class="demoOutcome">Your next action becomes evidence.</div>';
+  experiment.innerHTML='<div class="demoExperimentLabel">LIVE LEARNING TEST</div><div id="demoHypothesis" class="demoHypothesis">Baseline · No questionnaire. One meaningful action becomes evidence.</div><div id="demoOutcome" class="demoOutcome">Reject something and watch NØPE adapt.</div>';
   const shopSection=store.querySelector(".shopSection");
   if(shopSection)shopSection.parentNode.insertBefore(experiment,shopSection);
   else store.appendChild(experiment);
@@ -278,7 +278,7 @@ function installRecommendationActions(items){
       renderShopCore(nextChoices);
       proofStep("update","UI changed after ranking against the freshly fetched DB memory");
       const pulse=document.querySelector(".shopPulse");if(pulse)pulse.textContent="adapted · "+inferred.value;
-      const outcome=document.getElementById("demoOutcome");if(outcome){const removed=demoBaseline.filter(n=>!nextChoices.slice(0,8).some(x=>x.name===n));outcome.innerHTML="<strong>Confirmed</strong> · "+(removed.length?removed.length+" baseline option(s) moved out":"the shortlist was re-ranked")+" after the DB memory was re-read."}
+      const outcome=document.getElementById("demoOutcome");if(outcome)outcome.innerHTML="<strong>Confirmed</strong> · NØPE adapted away from "+inferred.value+" after the DB memory was re-read.";
       const hypothesis=document.getElementById("demoHypothesis");if(hypothesis)hypothesis.textContent="Learned → "+inferred.value;
       updateIntelligence(transcript,{count:SHOP_PRODUCTS.length},nextChoices.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
@@ -532,6 +532,7 @@ $("surprise").onclick=()=>{
 };
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
+const agenticOpen=document.getElementById("agenticOpen");if(agenticOpen)agenticOpen.onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
 $("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
 $("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","User chose to inspect the bag","bag_click","low");
  if(!cart.length)return setStatus("Your bag is empty. Ask NØPE to find something for you.","ok");
