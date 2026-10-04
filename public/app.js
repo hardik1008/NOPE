@@ -106,12 +106,17 @@ async function refreshSessionView(){
 }
 function captureIntentSignals(text,source){
   const q=String(text||"").toLowerCase();
-  const sid=sessionId();
   if(/shiny|chamak|flashy|glitter|satin|silk finish/.test(q)) recordSignal("finish","avoid shiny/flashy","User explicitly rejected shiny or flashy finishes",source,"explicit","high");
-  if(/formal|uncle/.test(q)) recordSignal("formality","avoid overly formal","User said they do not want a formal/uncle-type look",source,"explicit","high");
-  if(/relaxed|casual|comfortable|comfy/.test(q)) recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium");
-  if(/classy|elegant/.test(q)) recordSignal("style","prefer classy/elegant","Current request indicates a classy/elegant preference",source,"inferred","medium");
-  if(/youthful|young/.test(q)) recordSignal("style","prefer youthful","Current request indicates a youthful preference",source,"inferred","medium");
+  if(/formal|uncle|office-like|corporate/.test(q)) recordSignal("formality","avoid overly formal","User indicated they do not want a formal or office-like look",source,"explicit","high");
+  if(/relaxed|casual|comfortable|comfy|easy/.test(q)) recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium");
+  if(/classy|elegant|clean|minimal|understated/.test(q)) recordSignal("style","prefer clean and understated","Current request indicates a clean, understated style",source,"inferred","medium");
+  if(/youthful|young|trendy|cool/.test(q)) recordSignal("style","prefer youthful","Current request indicates a youthful/trendy preference",source,"inferred","medium");
+  if(/linen|cotton|denim|corduroy/.test(q)){const m=q.match(/linen|cotton|denim|corduroy/);recordSignal("material","prefer "+m[0],"Material mentioned in current request",source,"explicit","high")}
+  if(/black|navy|blue|white|ivory|beige|sand|sage|rust/.test(q)){const m=q.match(/black|navy|blue|white|ivory|beige|sand|sage|rust/);recordSignal("colour","prefer "+m[0],"Colour mentioned in current request",source,"explicit","high")}
+  if(/slim|fitted|tailored/.test(q)) recordSignal("fit","prefer fitted","Fit mentioned in current request",source,"explicit","high");
+  if(/oversized|loose|baggy/.test(q)) recordSignal("fit","prefer loose/oversized","Fit mentioned in current request",source,"explicit","high");
+  if(/breathable|summer|heat|garmi/.test(q)) recordSignal("comfort","prefer breathable","Comfort requirement detected",source,"inferred","medium");
+  if(/party|club|night out/.test(q)) recordSignal("occasion","prefer party/night-out","Occasion detected in current request",source,"explicit","high");
   const bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i); if(bm) recordSignal("budget","up to ₹"+bm[1],"Budget stated in current request",source,"explicit","high");
 }
 function updateIntelligence(q,found,picks){
@@ -146,18 +151,41 @@ function explainProduct(p){
   box.innerHTML='<div style="max-width:430px;background:#fff;border-radius:20px;padding:22px;box-shadow:0 20px 60px #0004"><div style="font-size:11px;font-weight:900;letter-spacing:.08em">WHY NØPE PICKED THIS</div><h2 style="margin:8px 0 6px">'+p.name+'</h2><div style="font-weight:850">₹'+p.price+'</div><p style="font-size:13px;line-height:1.55;color:#475467">✓ Within your current budget<br>✓ Fits the requested occasion and style<br>✓ Avoids your explicit exclusions<br>✓ Compared against the available catalogue</p><button id="closeWhy" class="shopBtn">Got it</button></div>';
   document.body.appendChild(box);document.getElementById("closeWhy").onclick=()=>box.remove();
 }
+function recordBehaviorSignal(preference,value,reason,signal_type="implicit",confidence="low"){
+  // Capture useful shopping intent only; never raw keystrokes, mouse coordinates, or unrelated browsing.
+  return recordSignal(preference,value,reason,"ui",signal_type,confidence);
+}
+function installBehavioralLearning(items){
+  document.querySelectorAll(".shopProduct").forEach((card,i)=>{
+    const p=items[i]; if(!p)return;
+    let timer=null, viewed=false;
+    card.addEventListener("mouseenter",()=>{
+      if(viewed)return;
+      timer=setTimeout(()=>{viewed=true;recordBehaviorSignal("product consideration",p.name,"User spent time considering this recommendation","dwell","low")},3500);
+    });
+    card.addEventListener("mouseleave",()=>{if(timer)clearTimeout(timer)});
+    card.addEventListener("focusin",()=>{
+      if(!viewed){viewed=true;recordBehaviorSignal("product consideration",p.name,"User opened a recommendation for closer consideration","detail_view","low")}
+    });
+  });
+}
 function installRecommendationActions(items){
-  document.querySelectorAll("[data-why]").forEach(b=>b.onclick=()=>explainProduct(items[Number(b.dataset.why)]||items[0]));
+  document.querySelectorAll("[data-why]").forEach(b=>b.onclick=()=>{
+  const p=items[Number(b.dataset.why)]||items[0];
+  recordBehaviorSignal("explanation interest",p.name,"User asked why this recommendation fits","why_this","low");
+  explainProduct(p);
+});
   document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{
     const p=items[Number(b.dataset.reject)]||items[0];
-    const raw=((p.style||"")+" "+(p.tags||[]).join(" ")).toLowerCase();
+    const local=SHOP_PRODUCTS.find(x=>x.name===p.name);
+    const raw=((p.style||"")+" "+(p.meta||"")+" "+(p.tags||[]).join(" ")+" "+(local?.meta||"")).toLowerCase();
     const inferred=raw.includes("formal")||raw.includes("structured")||raw.includes("elegant")
       ? {preference:"formality",value:"avoid overly formal / structured",reason:"Implicit UI rejection of a formal-looking recommendation"}
       : raw.includes("shiny")||raw.includes("party")
       ? {preference:"finish",value:"avoid shiny / party finishes",reason:"Implicit UI rejection of a shiny or party-style recommendation"}
       : {preference:"style",value:"avoid this style direction",reason:"Implicit UI rejection — NØPE inferred a negative style signal from the skipped recommendation"};
     try{
-      stage("Preference signal detected","You said “Not my vibe”. NØPE inferred what to avoid without asking another question.","nMemory");
+      stage("Preference signal detected","You skipped an option. NØPE inferred what to avoid without asking another question.","nMemory");
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
       showLearnedMemory(inferred.value,inferred.reason);
@@ -198,7 +226,17 @@ const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("st
 
 function setStatus(t,c){if(statusEl){statusEl.textContent=t;statusEl.className="status "+(c||"")}}
 function stage(t,d,n){$("stageTitle").textContent=t;$("stageDetail").textContent=d;["nGnani","nAgent","nMemory","nCatalog","nTts"].forEach(x=>$(x)?.classList.remove("live"));if(n)$(n)?.classList.add("live");const e=document.createElement("div");e.className="event";e.innerHTML='<span class="dot on"></span><span><b>'+t+"</b> — "+d+"</span>";$("timeline").prepend(e)}
-function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
+function inferProductAffinity(p){
+  const raw=((p?.name||"")+" "+(p?.style||"")+" "+(p?.meta||"")+" "+(p?.tags||[]).join(" ")).toLowerCase();
+  const signals=[];
+  if(/linen/.test(raw))signals.push(["material","linen"]);
+  if(/relaxed|oversized|easy|airy/.test(raw))signals.push(["fit/style","relaxed and comfortable"]);
+  if(/classy|minimal|clean|elegant/.test(raw))signals.push(["style","clean and understated"]);
+  if(/casual|cuban|camp|resort/.test(raw))signals.push(["style","casual resort"]);
+  if(/youthful|stylish/.test(raw))signals.push(["style","youthful"]);
+  signals.slice(0,3).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
+}
+function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
 function renderShop(filter){
  const root=$("shopProducts");let items=SHOP_PRODUCTS;
  if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
@@ -209,8 +247,8 @@ function renderShopMatches(items){
  const root=$("shopProducts");
  const tones=["#243447","#d9c3a5","#365b75","#202124","#eee5d0","#8b4b35","#38454b","#f4f4f1"];
  const brands=["NØPE Atelier","Casa Linen","Urban Loom","Sunday Club","Monarch","NØPE Basics"];
- root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'">✕ Not my vibe</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
- root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});installRecommendationActions(items);
+ root.innerHTML=items.slice(0,4).map((p,i)=>{const tone=tones[i%tones.length];const score=Math.round(p.fit_score||p.score||94-i*3);const local=SHOP_PRODUCTS.find(x=>x.name===p.name)||SHOP_PRODUCTS.find(x=>x.name.toLowerCase().includes(String(p.name||"").toLowerCase().split(" ")[0]));const brand=(local?.meta||"").split("·")[0].trim()||brands[i%brands.length];const reason=p.reason|| (i===0?"Strong fit for your current brief":i===1?"Matches your style + budget":"Fits the brief with fewer trade-offs");return '<div class="shopProduct"><div class="photo" style="--shirt:'+tone+'"><span class="tone"></span></div><div class="shopMeta" style="margin-top:10px;font-weight:800">'+brand+'</div><h3>'+p.name+'</h3><div class="shopPrice">₹'+p.price+'</div><div class="matchBadge">✦ '+score+'% NØPE match</div><div class="reason">'+reason+'</div><button class="whyBtn" data-why="'+i+'">Why this?</button><button class="nopeReject" data-reject="'+i+'">Skip this</button><button class="shopBtn" data-match="'+i+'">Add to bag</button></div>'}).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>{b.onclick=()=>{const p=SHOP_PRODUCTS.find(x=>x.name===items[i]?.name)||items[i];addToCart(p,b)}});installRecommendationActions(items);installBehavioralLearning(items);
 }
 async function mcp(name,args){
  setStatus("Calling "+name+"…");
@@ -282,8 +320,14 @@ mic.addEventListener("click",async e=>{
 });
 $("sendText").onclick=()=>processTranscript($("textInput").value,"text");
 $("textInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("sendText").click()});
-document.querySelectorAll(".chip[data-cat]").forEach(c=>c.onclick=()=>{document.querySelectorAll(".chip[data-cat]").forEach(x=>x.classList.remove("active"));c.classList.add("active");renderShop(c.dataset.cat)});
-$("surprise").onclick=()=>processTranscript("Find me a classy relaxed shirt under ₹3000");
+document.querySelectorAll(".chip[data-cat]").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll(".chip[data-cat]").forEach(x=>x.classList.remove("active"));c.classList.add("active");renderShop(c.dataset.cat);
+  recordBehaviorSignal("category interest",c.dataset.cat,"User chose this shopping category","category_select","low");
+});
+$("surprise").onclick=()=>{
+  recordBehaviorSignal("discovery openness","open to NØPE suggestions","User chose discovery instead of specifying a product","surprise_me","low");
+  processTranscript("Find me a classy relaxed shirt under ₹3000");
+};
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
 $("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
@@ -295,6 +339,8 @@ $("cartBtn").onclick=async()=>{
   const r=await mcp("create_order",{amount:p.price,currency:"INR",product_id:p.id,test_mode:"success"}),data=r.order||r,orderId=data.order_id||data.id;
   stage("Pine Labs payment rail","Test order created — "+orderId+".","nAgent");
   await mcp("confirm_purchase",{order_id:orderId,approval:true});
+  recordSignal("purchase affinity",p.name,"User explicitly approved this product for purchase","ui","purchase","high");
+  inferProductAffinity(p);
   const ship=await mcp("delhivery_create_shipment",{format:"json",test_mode:"success",shipments:[{order:orderId,user_id:"demo-user",payment_mode:"Prepaid",name:"Demo User",add:"Demo Address",city:"Gurugram",state:"Haryana",pin:"122001",phone:"9999999999",products:[{product_name:p.name,quantity:1,price:p.price}],total_amount:p.price}]});
   const waybill=ship.waybill||ship.packages?.[0]?.waybill||"pending";stage("Delhivery shipment created","AWB "+waybill+" · Manifested.","nCatalog");
   const tracked=await mcp("delhivery_track_latest_shipment",{});stage("Shipment tracked","Delhivery status: "+(tracked.ShipmentData?.[0]?.Shipment?.[0]?.Status?.Status||"In Transit"),"nCatalog");setStatus("✓ Full journey complete: discovery → decision → payment → delivery → tracking","ok");
