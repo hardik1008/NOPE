@@ -12,7 +12,7 @@ function injectIntelligenceUI(){
   if(!store||document.getElementById("nopeIntel"))return;
   const s=document.createElement("style");
   s.textContent=`
-  #nopeIntel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  #nopeIntel{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9990;display:block;width:min(430px,calc(100vw - 28px));margin:0;pointer-events:none}.intelCard{display:none!important}.intelCard:last-child{display:flex!important;align-items:center;justify-content:center;gap:10px;padding:9px 12px;border:1px solid #e7e9ee;border-radius:999px;background:#fffffff5;box-shadow:0 12px 35px #1112;backdrop-filter:blur(12px);pointer-events:auto}.intelHead,#memoryLive,#sessionMemory,#demoRun{display:none!important}.learningHint{margin:0!important;font-size:10px!important;color:#667085!important}.shopSection{margin-top:34px}
   .intelCard{border:1px solid #e4e7ec;border-radius:18px;background:#fff;padding:15px}
   .intelHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .intelTitle{font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
@@ -28,7 +28,7 @@ function injectIntelligenceUI(){
   .memoryLine b{color:#111}
   .decisionBar{margin-top:12px;border-radius:14px;background:#111;color:#fff;padding:12px;font-size:12px}
   .decisionBar span{opacity:.72}
-  .nopeReject{margin-top:7px;width:100%;border:1px solid #f1caca;background:#fff7f7;color:#a61b1b;border-radius:10px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
+  .nopeReject{position:absolute;right:12px;bottom:58px;width:34px;height:34px;border:1px solid #ffffffaa;background:#ffffffdd;color:#111;border-radius:50%;padding:0;font-size:0;cursor:pointer;opacity:0;transition:opacity .2s}.nopeReject:after{content:'×';font-size:18px}.shopProduct:hover .nopeReject{opacity:1}
   .whyBtn{margin-top:7px;width:100%;border:1px solid #e4e7ec;background:#fff;color:#111;border-radius:10px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
   .whyBox{display:none;margin-top:8px;padding:9px;border-radius:10px;background:#f8fafc;font-size:10px;color:#475467;line-height:1.45}
   .demoBtn{background:#111!important;color:#fff!important;border-color:#111!important}
@@ -49,28 +49,28 @@ function injectIntelligenceUI(){
   .sessionFoot{font-size:9px;color:#98a2b3;margin-top:8px}
   .learningHint{font-size:10px;color:#667085;margin-top:8px;line-height:1.4}
   .shopSection{margin-top:24px}
-  .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:14px}
+  .shopIntro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}.shopHeadline{font-size:29px;line-height:1.02;font-weight:900;letter-spacing:-.055em;margin:3px 0}.shopSub{font-size:11px;color:#667085;max-width:460px;line-height:1.45}.shopPulse{font-size:10px;color:#98a2b3;white-space:nowrap}
   .shopEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#98a2b3;text-transform:uppercase}
   .shopHeadline{font-size:25px;line-height:1.08;font-weight:900;letter-spacing:-.04em;margin:4px 0}
   .shopSub{font-size:11px;color:#667085;max-width:520px;line-height:1.5}
   .shopPulse{font-size:10px;color:#667085;white-space:nowrap}
-  #shopProducts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-  .shopProduct{position:relative;border:1px solid #e8eaee;border-radius:20px;background:#fff;padding:9px;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;cursor:default}
+  #shopProducts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.shopProduct{position:relative;border:0;border-radius:22px;background:transparent;padding:0;overflow:visible;transition:transform .25s ease}.shopProduct:hover{transform:translateY(-5px)}
+  .shopProduct{position:relative;border:0;border-radius:22px;background:transparent;padding:0;overflow:visible;transition:transform .25s ease}.shopProduct:hover{transform:translateY(-5px)}
   .shopProduct:hover{transform:translateY(-4px);box-shadow:0 18px 45px #11111112;border-color:#d8dce3}
-  .visualProduct{height:245px;border-radius:15px;position:relative;overflow:hidden;background:linear-gradient(145deg,var(--bg1),var(--bg2));display:grid;place-items:center}
+  .visualProduct{height:390px;border-radius:20px;position:relative;overflow:hidden;background:linear-gradient(145deg,var(--bg1),var(--bg2));display:grid;place-items:center;cursor:pointer;transition:filter .25s ease,transform .25s ease}.shopProduct:hover .visualProduct{filter:saturate(1.08)}
   .visualProduct:before{content:"";position:absolute;width:155px;height:205px;border-radius:58% 58% 24% 24%;background:linear-gradient(135deg,var(--cloth1),var(--cloth2));box-shadow:inset -18px -10px 25px #0002, inset 13px 10px 18px #fff3;transform:rotate(-1deg);top:27px}
   .visualProduct:after{content:"";position:absolute;width:58px;height:48px;border-radius:0 0 28px 28px;border-bottom:7px solid #0002;top:24px;background:linear-gradient(90deg,transparent 40%,#fff4 41%,#fff4 44%,transparent 45%);z-index:2}
   .productShadow{position:absolute;width:145px;height:18px;border-radius:50%;background:#0002;filter:blur(8px);bottom:18px}
   .productBadge{position:absolute;top:10px;left:10px;background:#ffffffe8;border:1px solid #fff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;z-index:4}
   .heartBtn{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffffe8;font-size:15px;cursor:pointer;z-index:4}
-  .swatches{display:flex;gap:6px;margin:9px 2px 7px}
-  .swatch{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d0d5dd;cursor:pointer}
+  .swatches{display:flex;gap:7px;margin:10px 2px 0}
+  .swatch{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d0d5dd;cursor:pointer}
   .swatch.active{box-shadow:0 0 0 2px #111}
-  .productMetaRow{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .productMetaRow{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:9px}
   .productKicker{font-size:9px;color:#667085;font-weight:800}
   .productMatch{font-size:9px;font-weight:900}
-  .productName{font-size:14px;font-weight:900;letter-spacing:-.02em;margin:5px 0 3px}
-  .productDesc{font-size:10px;color:#667085;line-height:1.45;min-height:28px}
+  .productName{font-size:15px;font-weight:900;letter-spacing:-.025em;margin:4px 0 1px}.productPrice{font-size:11px;color:#667085;font-weight:800}
+  .productDesc,.productFacts,.quietChoice,.productActions,.productKicker,.productMatch{display:none!important}
   .productFacts{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
   .fact{font-size:9px;padding:5px 7px;border-radius:999px;background:#f6f7f9;color:#475467}
   .productActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
@@ -89,8 +89,8 @@ function injectIntelligenceUI(){
   .sizeChoice{padding:8px 13px;border:1px solid #dfe3e8;background:#fff;border-radius:10px;font-size:10px;font-weight:850;cursor:pointer}
   .sizeChoice.active{background:#111;color:#fff;border-color:#111}
   .modalFoot{display:flex;gap:8px;margin-top:18px}
-  @media(max-width:1050px){#shopProducts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:600px){#shopProducts{grid-template-columns:1fr}.choiceGrid{grid-template-columns:1fr}.visualProduct{height:300px}}
+  @media(max-width:1200px){#shopProducts{grid-template-columns:repeat(3,minmax(0,1fr))}} @media(max-width:1050px){#shopProducts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){#shopProducts{grid-template-columns:1fr}.choiceGrid{grid-template-columns:1fr}.visualProduct{height:330px}}
   @media(max-width:900px){.prefGrid{grid-template-columns:1fr}}
   @media(max-width:900px){#nopeIntel{grid-template-columns:1fr}.metricRow{grid-template-columns:repeat(3,1fr)}}
   `;
@@ -200,16 +200,12 @@ function recordBehaviorSignal(preference,value,reason,signal_type="implicit",con
 }
 function installBehavioralLearning(items){
   document.querySelectorAll(".shopProduct").forEach((card,i)=>{
-    const p=items[i]; if(!p)return;
-    let timer=null, viewed=false;
-    card.addEventListener("mouseenter",()=>{
-      if(viewed)return;
-      timer=setTimeout(()=>{viewed=true;recordBehaviorSignal("product consideration",p.name,"User spent time considering this recommendation","dwell","low")},3500);
-    });
-    card.addEventListener("mouseleave",()=>{if(timer)clearTimeout(timer)});
-    card.addEventListener("focusin",()=>{
-      if(!viewed){viewed=true;recordBehaviorSignal("product consideration",p.name,"User opened a recommendation for closer consideration","detail_view","low")}
-    });
+    const p=items[i];if(!p)return;let timer=null,entered=0,viewed=false;
+    card.addEventListener("mouseenter",()=>{entered=Date.now();if(timer)clearTimeout(timer);timer=setTimeout(()=>{viewed=true;recordBehaviorSignal("hover intent",p.name,"User lingered on this product","hover_dwell","low");learnTaste(p,.18,"hover")},900)});
+    card.addEventListener("mouseleave",()=>{if(timer)clearTimeout(timer);if(entered&&Date.now()-entered>500)recordBehaviorSignal("product consideration",p.name,"User explored this product visually","hover","low");entered=0});
+    card.addEventListener("focusin",()=>{if(!viewed){viewed=true;recordBehaviorSignal("product consideration",p.name,"User focused on this product","focus","low");learnTaste(p,.2,"focus")}});
+    card.addEventListener("click",e=>{if(e.target.closest("button"))return;recordBehaviorSignal("product click",p.name,"User intentionally interacted with this product","product_click","low");learnTaste(p,.35,"click");openProductDetail(p)});
+    const visual=card.querySelector(".visualProduct");if(visual)visual.onclick=e=>{e.stopPropagation();recordBehaviorSignal("visual interest",p.name,"User clicked the product visual","visual_click","low");learnTaste(p,.45,"visual click");openProductDetail(p)};
   });
 }
 function installRecommendationActions(items){
@@ -232,13 +228,15 @@ function installRecommendationActions(items){
       const saved=await mcp("record_preference",{user_id:"demo-user",preference:inferred.preference,value:inferred.value,reason:inferred.reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
       showLearnedMemory(inferred.value,inferred.reason);
-      stage("Memory updated","The inferred negative signal is now part of this session and will affect the next ranking.","nCatalog");
+      learnTaste(p,-1.8,"skip");
+      stage("Memory updated","NØPE is testing a different direction.","nCatalog");
       const avoidTerms=inferred.preference==="formality"?"formal":inferred.preference==="finish"?"shiny":"formal,shiny";
       const found=await mcp("search_products",{category:"clothing",max_price:3000,occasion:"wedding",style:"classy relaxed",avoid:avoidTerms});
       const products=found.results||[];
       const ranked=products.length?(await mcp("rank_products",{products,preferences:[{preference:inferred.preference,value:inferred.value}],intent:transcript})).results||products:products;
-      renderShopMatches(ranked);
-      updateIntelligence(transcript,{count:products.length},ranked.slice(0,3));
+      const candidates=[...ranked,...SHOP_PRODUCTS].filter((x,i,a)=>x&&a.findIndex(y=>y.name===x.name)===i).sort((a,b)=>productScore(b,0)-productScore(a,0));
+      renderShopCore(candidates.slice(0,8));
+      updateIntelligence(transcript,{count:products.length},candidates.slice(0,3));
       stage("NØPE re-ranked","New shortlist reflects your rejection — not just your original search.","nAgent");
       setStatus("✓ Learned from rejection and changed the shortlist","ok");
     }catch(e){setStatus("Learning error: "+e.message,"err")}
@@ -264,6 +262,20 @@ const SHOP_PRODUCTS=[
 {id:"sand-cuban",name:"Sand Cuban Collar",price:1899,emoji:"🧥",meta:"Cotton · Casual · Youthful"}
 ];
 SHOP_PRODUCTS.push({id:"camp-collar",name:"Camp Collar Resort Shirt",price:1899,emoji:"👕",meta:"Sunday Club · Printed · Relaxed"}); SHOP_PRODUCTS.push({id:"sage-linen",name:"Sage Linen Cuban Shirt",price:2499,emoji:"👕",meta:"Casa Linen · Linen · Wedding"}); SHOP_PRODUCTS.push({id:"navy-check",name:"Navy Micro-Check Shirt",price:2199,emoji:"👔",meta:"NØPE Atelier · Clean · Smart casual"}); SHOP_PRODUCTS.push({id:"black-camp",name:"Black Textured Camp Shirt",price:2099,emoji:"👕",meta:"Urban Loom · Textured · Stylish"}); SHOP_PRODUCTS.push({id:"ivory-mandarin",name:"Ivory Mandarin Collar Shirt",price:2399,emoji:"👔",meta:"Monarch · Minimal · Festive"}); SHOP_PRODUCTS.push({id:"rust-overshirt",name:"Rust Corduroy Overshirt",price:2799,emoji:"🧥",meta:"Sunday Club · Corduroy · Layering"}); SHOP_PRODUCTS.push({id:"performance-polo",name:"Charcoal Performance Polo",price:1599,emoji:"👕",meta:"NØPE Sport · Stretch · Breathable"}); SHOP_PRODUCTS.push({id:"minimal-tee",name:"White Minimal Oversized Tee",price:999,emoji:"👕",meta:"NØPE Basics · Oversized · Minimal"});
+SHOP_PRODUCTS.push(
+{id:"black-satin",name:"Black Satin Night Shirt",price:2199,meta:"After Dark · Satin · Shiny",visual:["#efe9e7","#cfc5c1","#161616","#050505"]},
+{id:"neon-lime",name:"Lime Statement Camp Shirt",price:1799,meta:"After Dark · Neon · Loud",visual:["#e8f3d0","#cce8a2","#b6df22","#6d8d08"]},
+{id:"floral-punch",name:"Tropical Floral Shirt",price:1999,meta:"Sunday Club · Floral · Loud",visual:["#f4d8dc","#f6e6b8","#d33b56","#7b1f42"]},
+{id:"office-blue",name:"Executive Blue Formal Shirt",price:2299,meta:"Monarch · Formal · Structured",visual:["#e5ebf3","#d4dce8","#49617c","#26384e"]},
+{id:"skinny-white",name:"Sharp Slim White Shirt",price:1899,meta:"Monarch · Fitted · Formal",visual:["#f5f5f1","#e2e2dc","#f6f4ed","#b9b6ac"]},
+{id:"purple-satin",name:"Purple Gloss Party Shirt",price:2399,meta:"After Dark · Gloss · Party",visual:["#eadcf2","#d5c2e1","#8d4bb2","#4a185f"]},
+{id:"orange-pop",name:"Orange Pop Cuban Shirt",price:1699,meta:"Weekend · Orange · Bold",visual:["#f5ded0","#f0c4aa","#ef6c2f","#a93c16"]},
+{id:"grey-basic",name:"Grey Basic Button Shirt",price:1399,meta:"NØPE Basics · Plain · Everyday",visual:["#ececeb","#d9d9d7","#8b8d8c","#5f6262"]},
+{id:"baggy-denim",name:"Washed Denim Overshirt",price:2499,meta:"Urban Loom · Denim · Oversized",visual:["#dce8ee","#c4d8e3","#668fa8","#385e76"]},
+{id:"yellow-check",name:"Yellow Micro Check Shirt",price:1899,meta:"Weekend · Check · Bright",visual:["#f6edc8","#e8dda6","#d7b93f","#89721a"]},
+{id:"maroon-mandarin",name:"Maroon Mandarin Shirt",price:2399,meta:"Monarch · Festive · Bold",visual:["#ead9d8","#dcc0c0","#8b3035","#4d161d"]},
+{id:"olive-linen",name:"Olive Linen Relaxed Shirt",price:2299,meta:"Casa Linen · Linen · Relaxed",visual:["#e1e8d7","#cbd7bd","#7c8d54","#46542f"]}
+);
 let cart=[], recorder=null, chunks=[], recording=false, transcript="";
 const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("status"), audio=$("audio");
 
@@ -280,39 +292,61 @@ function inferProductAffinity(p){
   signals.slice(0,3).forEach(([k,v])=>recordSignal(k,v,"User chose a product carrying this attribute","ui","positive_choice","medium"));
 }
 function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");inferProductAffinity(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
-function visualFor(p){
-  const map={"linen-resort":["#f4e8d4","#d7e5dc","#d8a978","#b87552"],"textured-oxford":["#e7edf2","#d9d2c7","#45677a","#263f4b"],"cuban-collar":["#f1dfcc","#e6c5b6","#cf704d","#9e3f32"],"relaxed-linen":["#e9eee2","#d7d1bd","#a7ad78","#68714d"],"navy-oxford":["#dbe2ea","#e8e2d8","#263e59","#17283a"],"sand-cuban":["#eee5d3","#d9c8ad","#b69a70","#806548"],"camp-collar":["#eee0eb","#d8e6df","#7d536d","#4d7d70"],"sage-linen":["#e0eadf","#d2ddcf","#78916d","#496451"],"navy-check":["#e2e7ec","#d7d1c4","#304b61","#182d3c"],"black-camp":["#e4e1dd","#c8d0cd","#303638","#111516"],"ivory-mandarin":["#f2ede2","#e4d8c7","#e8dfca","#b8a98d"],"rust-overshirt":["#ead9ce","#d9e0d5","#a65338","#6d3426"],"performance-polo":["#dce4e3","#c9d3d7","#4c5a5d","#22292b"],"minimal-tee":["#f0efeb","#dfe5df","#eeeae0","#c8c6bc"]};const x=map[p.id]||["#eceff1","#d9dde2","#52606b","#252d32"];return {bg1:x[0],bg2:x[1],c1:x[2],c2:x[3]}}
+const tasteKey="nope_taste_"+sessionId();
+let tasteModel={};try{tasteModel=JSON.parse(localStorage.getItem(tasteKey)||"{}")}catch(e){tasteModel={}}
+function traitsOf(p){
+  const raw=((p?.name||"")+" "+(p?.meta||"")+" "+(p?.tags||[]).join(" ")).toLowerCase(),t=[];
+  if(/linen/.test(raw))t.push("linen");if(/cotton|oxford/.test(raw))t.push("cotton");if(/corduroy/.test(raw))t.push("corduroy");
+  if(/relaxed|oversized|easy|airy|camp|cuban|resort/.test(raw))t.push("relaxed");if(/slim|fitted|tailored|formal|structured/.test(raw))t.push("fitted");
+  if(/minimal|clean|understated|plain|solid/.test(raw))t.push("minimal");if(/print|floral|loud|graphic|check/.test(raw))t.push("expressive");
+  if(/shiny|satin|gloss|metallic/.test(raw))t.push("shiny");if(/neon|lime|orange|pink|purple|yellow/.test(raw))t.push("bold-color");
+  if(/navy|black|white|ivory|beige|sand|sage|olive|charcoal|rust|blue/.test(raw))t.push("muted-color");
+  if(/wedding|festive|mandarin|elegant/.test(raw))t.push("occasion");if(/tee|polo|sport|performance/.test(raw))t.push("everyday");
+  return [...new Set(t)];
+}
+function learnTaste(p,delta,reason){
+  traitsOf(p).forEach(k=>{tasteModel[k]=(tasteModel[k]||0)+delta});localStorage.setItem(tasteKey,JSON.stringify(tasteModel));
+  const lead=Object.entries(tasteModel).sort((a,b)=>b[1]-a[1])[0];if(lead&&Math.abs(lead[1])>1.5)showTastePulse(lead[0],lead[1],reason);
+}
+function productScore(p,index){let s=(p.baseScore||60)-index*.15;traitsOf(p).forEach(k=>s+=(tasteModel[k]||0)*7);return s}
+function showTastePulse(trait,weight,reason){
+  const dock=document.querySelector("#nopeIntel .learningHint");if(!dock)return;
+  const labels={relaxed:"easy, relaxed pieces",fitted:"sharper fits",minimal:"cleaner looks",expressive:"more expressive pieces",shiny:"high-shine finishes","bold-color":"bolder colour","muted-color":"quieter colour",linen:"linen",occasion:"occasion-ready pieces",everyday:"everyday pieces",cotton:"cotton",corduroy:"texture"};
+  dock.textContent=(weight<0?"NØPE is moving away from ":"NØPE is getting warmer on ")+(labels[trait]||trait)+" · testing the next few choices";
+}
+function visualFor(p){const x=p.visual||["#eceff1","#d9dde2","#52606b","#252d32"];return {bg1:x[0],bg2:x[1],c1:x[2],c2:x[3]}}
 function openProductDetail(p){
  const v=visualFor(p),box=document.createElement("div");box.className="choiceModal";
  box.innerHTML='<div class="choiceSheet"><div class="choiceGrid"><div class="detailVisual" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'"></div><div><div class="shopEyebrow">NØPE quick look</div><div class="detailTitle">'+p.name+'</div><div style="font-size:18px;font-weight:900">₹'+p.price+'</div><div style="font-size:11px;color:#667085;line-height:1.5;margin-top:7px">A considered option with an easy, wearable feel.</div><div class="choiceLabel">Colour</div><div class="colorChoices"><button class="swatch active" style="background:'+v.c1+'" data-var="colour"></button><button class="swatch" style="background:'+v.c2+'" data-var="colour"></button><button class="swatch" style="background:#d2ad73" data-var="colour"></button></div><div class="choiceLabel">Feel</div><div class="sizeChoices"><button class="sizeChoice active" data-fit="relaxed">Relaxed</button><button class="sizeChoice" data-fit="regular">Regular</button><button class="sizeChoice" data-fit="fitted">Fitted</button></div><div class="choiceLabel">Size</div><div class="sizeChoices"><button class="sizeChoice" data-size="S">S</button><button class="sizeChoice active" data-size="M">M</button><button class="sizeChoice" data-size="L">L</button><button class="sizeChoice" data-size="XL">XL</button></div><div class="modalFoot"><button class="quickBtn" id="closeChoice">Maybe later</button><button class="quickBtn primary" id="addChoice">Add to bag</button></div></div></div></div>';
- document.body.appendChild(box);box.querySelector("#closeChoice").onclick=()=>box.remove();box.querySelector("#addChoice").onclick=()=>{addToCart(p);recordBehaviorSignal("product detail preference",p.name,"User configured a product and kept exploring it","customize","medium");box.remove()};
- box.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-var]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("colour interest",p.name,"User explored a colour variation","variation","low")});
- box.querySelectorAll("[data-fit]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-fit]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("fit interest",b.dataset.fit,"User explored a fit variation","variation","low")});
- box.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-size]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("size interest",b.dataset.size,"User selected a size while exploring","variation","low")});
+ document.body.appendChild(box);box.querySelector("#closeChoice").onclick=()=>{recordBehaviorSignal("detail exit",p.name,"User closed the detail view without adding","detail_exit","low");box.remove()};box.querySelector("#addChoice").onclick=()=>{addToCart(p);learnTaste(p,2.2,"detail add");recordBehaviorSignal("product detail preference",p.name,"User configured a product and kept exploring it","customize","medium");box.remove()};
+ box.querySelectorAll("[data-var]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-var]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("colour interest",p.name,"User explored a colour variation","variation","low");learnTaste(p,.5,"variation")});
+ box.querySelectorAll("[data-fit]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-fit]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("fit interest",b.dataset.fit,"User explored a fit variation","variation","low");learnTaste(p,.45,"fit")});
+ box.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{box.querySelectorAll("[data-size]").forEach(x=>x.classList.remove("active"));b.classList.add("active");recordBehaviorSignal("size interest",b.dataset.size,"User selected a size while exploring","variation","low");learnTaste(p,.25,"size")});
 }
 function productCard(p,i){
- const v=visualFor(p),score=Math.round(p.fit_score||p.score||94-i*3),meta=p.meta||"NØPE edit";
- return '<div class="shopProduct"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'"><span class="productBadge">'+(i===0?"NØPE pick":score+"% match")+'</span><button class="heartBtn" data-save="'+i+'">♡</button><span class="productShadow"></span></div><div class="swatches"><button class="swatch active" style="background:'+v.c1+'" data-colour="'+i+'"></button><button class="swatch" style="background:'+v.c2+'" data-colour="'+i+'"></button><button class="swatch" style="background:#d2ad73" data-colour="'+i+'"></button></div><div class="productMetaRow"><span class="productKicker">'+meta.split("·")[0]+'</span><span class="productMatch">'+score+'% fit</span></div><div class="productName">'+p.name+'</div><div class="productDesc">A considered option with an easy, wearable feel.</div><div class="productFacts"><span class="fact">'+(meta.split("·")[1]||"Everyday").trim()+'</span><span class="fact">'+(meta.split("·")[2]||"Easy").trim()+'</span></div><div class="productActions"><button class="quickBtn" data-detail="'+i+'">Quick look</button><button class="quickBtn primary" data-match="'+i+'">Add to bag</button></div><button class="nopeReject" data-reject="'+i+'">Skip this</button><div class="quietChoice">or keep browsing — NØPE will follow your lead</div></div>';
+ const v=visualFor(p),score=Math.round(productScore(p,i)),badge=i===0?"NØPE is testing this":"";
+ return '<div class="shopProduct" data-product="'+p.id+'"><div class="visualProduct" style="--bg1:'+v.bg1+';--bg2:'+v.bg2+';--cloth1:'+v.c1+';--cloth2:'+v.c2+'" data-visual="'+i+'"><span class="productBadge">'+badge+'</span><button class="heartBtn" data-save="'+i+'" aria-label="Save">♡</button><span class="productShadow"></span></div><div class="swatches"><button class="swatch active" style="background:'+v.c1+'" data-colour="'+i+'"></button><button class="swatch" style="background:'+v.c2+'" data-colour="'+i+'"></button><button class="swatch" style="background:#d2ad73" data-colour="'+i+'"></button></div><div class="productMetaRow"><span class="productName">'+p.name+'</span><span class="productPrice">₹'+p.price+'</span></div><button class="quickBtn" data-detail="'+i+'">Quick look</button><button class="quickBtn primary" data-match="'+i+'">Add to bag</button><button class="nopeReject" data-reject="'+i+'" aria-label="Skip">Skip this</button></div>';
 }
-function renderShop(filter){
- const root=$("shopProducts");let items=SHOP_PRODUCTS;
- if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
- root.innerHTML=items.map(productCard).join("");
- root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>addToCart(items[i],b));
- root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>openProductDetail(items[i]));
- root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";recordBehaviorSignal("save affinity",items[i].name,"User saved a product to revisit","save","medium")});
- root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{b.classList.toggle("active");recordBehaviorSignal("colour interest",items[Number(b.dataset.colour)].name,"User explored a colour variation","variation","low")});
+function adaptShop(items){
+ const ranked=[...items].sort((a,b)=>productScore(b,0)-productScore(a,0));
+ renderShopCore(ranked);
+}
+function renderShopCore(items){
+ const root=$("shopProducts");root.innerHTML=items.map(productCard).join("");
+ root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("add intent",p.name,"User chose to move this product toward purchase","add_click","medium");learnTaste(p,2,"add to bag");addToCart(p,b);});
+ root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>{const p=items[i];recordBehaviorSignal("quick look",p.name,"User asked for a closer product view","quick_look","low");learnTaste(p,.7,"quick look");openProductDetail(p)});
+ root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";const p=items[i];recordBehaviorSignal("save affinity",p.name,"User saved this product","save","medium");learnTaste(p,1.4,"save")});
+ root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.colour)],card=b.closest(".shopProduct"),visual=card?.querySelector(".visualProduct");card?.querySelectorAll("[data-colour]").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(visual){const c=b.style.background;visual.style.setProperty("--cloth1",c);visual.style.setProperty("--cloth2",c)}recordBehaviorSignal("colour exploration",p.name,"User explored a visible colour variation","variation","low");learnTaste(p,.45,"colour")});
  installRecommendationActions(items);installBehavioralLearning(items);
 }
+function renderShop(filter){
+ let items=SHOP_PRODUCTS;
+ if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
+ renderShopCore(items);
+}
 function renderShopMatches(items){
- const root=$("shopProducts");
- const enriched=items.slice(0,4).map(p=>SHOP_PRODUCTS.find(x=>x.name===p.name)||p);
- root.innerHTML=enriched.map(productCard).join("");
- root.querySelectorAll("[data-match]").forEach((b,i)=>b.onclick=()=>addToCart(enriched[i],b));
- root.querySelectorAll("[data-detail]").forEach((b,i)=>b.onclick=()=>openProductDetail(enriched[i]));
- root.querySelectorAll("[data-save]").forEach((b,i)=>b.onclick=()=>{b.textContent="♥";recordBehaviorSignal("save affinity",enriched[i].name,"User saved a recommendation to revisit","save","medium")});
- root.querySelectorAll("[data-colour]").forEach(b=>b.onclick=()=>{b.classList.toggle("active");recordBehaviorSignal("colour interest",enriched[Number(b.dataset.colour)].name,"User explored a colour variation","variation","low")});
- installRecommendationActions(items);installBehavioralLearning(enriched);
+ const enriched=items.slice(0,8).map(p=>SHOP_PRODUCTS.find(x=>x.name===p.name)||p);
+ renderShopCore(enriched);
 }
 async function mcp(name,args){
  setStatus("Calling "+name+"…");
@@ -382,7 +416,7 @@ mic.addEventListener("click",async e=>{
  try{if(!recording)await start();else{setStatus("Stopping recording…","ok");recording=false;recorder.stop()}}
  catch(e){recording=false;mic.classList.remove("recording");mic.textContent="🎙";console.error(e);setStatus("Microphone error: "+e.name+" — "+e.message,"err");hint.textContent="Click again after allowing microphone access."}
 });
-$("sendText").onclick=()=>processTranscript($("textInput").value,"text");
+$("sendText").onclick=()=>{recordBehaviorSignal("ask action","text","User chose to ask NØPE for help","ask_click","low");processTranscript($("textInput").value,"text")};
 $("textInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("sendText").click()});
 document.querySelectorAll(".chip[data-cat]").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip[data-cat]").forEach(x=>x.classList.remove("active"));c.classList.add("active");renderShop(c.dataset.cat);
@@ -395,7 +429,7 @@ $("surprise").onclick=()=>{
 $("copy").onclick=async()=>{if(!transcript)return setStatus("Nothing to copy yet.","err");try{await navigator.clipboard.writeText(transcript);setStatus("✓ Transcript copied.","ok")}catch(e){setStatus("Clipboard blocked — select the transcript manually.","err")}};
 $("open").onclick=()=>{window.open("https://agenticorg.hackathon.pinelabs.com/dashboard/agents","_blank");setStatus("✓ AgenticOrg opened.","ok")};
 $("speak").onclick=async()=>{if(!transcript)return setStatus("Speak or type first.","err");try{setStatus("Generating Gnani TTS…");const r=await mcp("gnani_text_to_speech",{text:transcript,language:NOPE_LANGUAGE,voice:NOPE_VOICE,speed:NOPE_SPEED});if(!r.success)throw Error(r.error||"TTS failed");audio.src=r.audio_url;audio.hidden=false;await audio.play();setStatus("✓ Gnani TTS worked","ok")}catch(e){setStatus("TTS error: "+e.message,"err")}};
-$("cartBtn").onclick=async()=>{
+$("cartBtn").onclick=async()=>{recordBehaviorSignal("bag action","open bag","User chose to inspect the bag","bag_click","low");
  if(!cart.length)return setStatus("Your bag is empty. Ask NØPE to find something for you.","ok");
  const p=cart[0];if(!window.confirm("Proceed with a TEST purchase of "+p.name+" for ₹"+p.price+"? No real money will be charged."))return;
  try{
