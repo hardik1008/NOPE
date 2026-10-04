@@ -83,7 +83,10 @@ const tools = [
         preference: { type: "string" },
         value: { type: "string" },
         reason: { type: "string" },
-        confidence: { type: "string", enum: ["low","medium","high"] }
+        confidence: { type: "string", enum: ["low","medium","high"] },
+        session_id: { type: ["string","null"] },
+        source: { type: ["string","null"], description: "voice, text, ui or agent" },
+        signal_type: { type: ["string","null"], description: "explicit, rejection, click, add_to_bag or inferred" }
       },
       required: ["user_id","preference","value"]
     }
@@ -1087,12 +1090,12 @@ export default async function (req, res) {
 
     if (name === "record_preference") {
       await db.query(
-        "INSERT INTO nope_preferences (user_id, preference, value, reason, confidence) VALUES ($1, $2, $3, $4, $5)",
-        [String(args.user_id), String(args.preference), String(args.value), args.reason ? String(args.reason) : null, args.confidence || "medium"]
+        "INSERT INTO nope_preferences (user_id, preference, value, reason, confidence, session_id, source, signal_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        [String(args.user_id), String(args.preference), String(args.value), args.reason ? String(args.reason) : null, args.confidence || "medium", args.session_id || null, args.source || "agent", args.signal_type || "explicit"]
       );
       await db.query(
         "INSERT INTO nope_events (user_id, event_type, payload) VALUES ($1, $2, $3)",
-        [String(args.user_id), "PREFERENCE_LEARNED", JSON.stringify({preference:args.preference,value:args.value,reason:args.reason || null,confidence:args.confidence || "medium"})]
+        [String(args.user_id), "PREFERENCE_LEARNED", JSON.stringify({preference:args.preference,value:args.value,reason:args.reason || null,confidence:args.confidence || "medium",session_id:args.session_id || null,source:args.source || "agent",signal_type:args.signal_type || "explicit"})]
       );
       // For rejection-driven shopping flows, return a fresh shortlist together with the saved memory.
       // This makes the learning loop atomic and prevents the agent from stopping after saving feedback.
@@ -1116,8 +1119,8 @@ export default async function (req, res) {
 
     if (name === "get_preferences") {
       const { rows } = await db.query(
-        "SELECT preference, value, reason, confidence, created_at FROM nope_preferences WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20",
-        [String(args.user_id)]
+        "SELECT preference, value, reason, confidence, source, signal_type, session_id, created_at FROM nope_preferences WHERE user_id = $1 AND ($2 = '' OR session_id = $2) ORDER BY created_at DESC LIMIT 20",
+        [String(args.user_id), String(args.session_id || "")]
       );
       return res.json(jsonRpc(id, {
         content: [{ type:"text", text: JSON.stringify({ preferences:rows, count:rows.length }) }],

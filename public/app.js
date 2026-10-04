@@ -32,6 +32,17 @@ function injectIntelligenceUI(){
   .whyBtn{margin-top:7px;width:100%;border:1px solid #e4e7ec;background:#fff;color:#111;border-radius:10px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
   .whyBox{display:none;margin-top:8px;padding:9px;border-radius:10px;background:#f8fafc;font-size:10px;color:#475467;line-height:1.45}
   .demoBtn{background:#111!important;color:#fff!important;border-color:#111!important}
+  .sessionMemory{margin-top:12px;padding:11px;border:1px solid #eaecf0;border-radius:12px;background:#fff}
+  .prefGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .prefLabel{font-size:9px;font-weight:900;letter-spacing:.08em;color:#98a2b3;margin-bottom:6px}
+  .prefItem{padding:7px 0;border-bottom:1px solid #f0f1f3}
+  .prefMain{font-size:11px;font-weight:800;display:block}
+  .prefMeta{font-size:9px;color:#98a2b3}
+  .prefReason{font-size:9px;color:#667085;margin-top:2px}
+  .emptyMemory{font-size:10px;color:#98a2b3;line-height:1.4}
+  .sessionFoot{font-size:9px;color:#98a2b3;margin-top:8px}
+  .learningHint{font-size:10px;color:#667085;margin-top:8px;line-height:1.4}
+  @media(max-width:900px){.prefGrid{grid-template-columns:1fr}}
   @media(max-width:900px){#nopeIntel{grid-template-columns:1fr}.metricRow{grid-template-columns:repeat(3,1fr)}}
   `;
   document.head.appendChild(s);
@@ -54,9 +65,47 @@ function injectIntelligenceUI(){
     <div class="intelCard">
       <div class="intelHead"><div class="intelTitle">🧬 Preference memory</div><div id="memoryConfidence" class="signal">No new signal</div></div>
       <div id="memoryLive" class="memoryLine">NØPE will show what it learned and why.</div>
+      <div id="sessionMemory" class="sessionMemory"><div class="emptyMemory">No preference signals yet. NØPE will learn from what you say and what you choose.</div></div>
+      <div class="learningHint">NØPE learns from voice, text and lightweight choices — not just questionnaires.</div>
       <button id="demoRun" class="shopBtn demoBtn" type="button">▶ Run guided NØPE demo</button>
     </div>`;
   store.appendChild(intel);
+}
+function sessionId(){let s=localStorage.getItem("nope_session_id");if(!s){s="sess_"+crypto.randomUUID();localStorage.setItem("nope_session_id",s)}return s}
+async function recordSignal(preference,value,reason,source,signal_type="inferred",confidence="medium"){
+  try{
+    const saved=await mcp("record_preference",{user_id:"demo-user",preference,value,reason,confidence,session_id:sessionId(),source,signal_type});
+    if(saved?.status==="SAVED") refreshSessionView();
+    return saved;
+  }catch(e){console.warn("Preference signal not saved",e);return null}
+}
+async function refreshSessionView(){
+  try{
+    const r=await fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId(),user_id:"demo-user"})});
+    const d=await r.json();
+    const root=document.getElementById("sessionMemory"); if(!root)return;
+    const prefs=d.preferences||[];
+    if(!prefs.length){root.innerHTML='<div class="emptyMemory">No preference signals yet. NØPE will learn from what you say and what you choose.</div>';return}
+    const groups={hard:[],like:[],avoid:[],signals:[]};
+    prefs.slice(0,12).forEach(p=>{
+      const text=(p.preference+" "+p.value+" "+(p.reason||"")).toLowerCase();
+      const item='<div class="prefItem"><span class="prefMain">'+(p.value||p.preference)+'</span><span class="prefMeta">'+(p.source||"agent")+' · '+(p.confidence||"medium")+'</span>'+(p.reason?'<div class="prefReason">'+p.reason+'</div>':'')+'</div>';
+      if(/avoid|hate|dislike|no |not |formal|shiny/.test(text))groups.avoid.push(item);
+      else if(/budget|occasion|fit|material|color/.test(text))groups.hard.push(item);
+      else groups.like.push(item);
+    });
+    root.innerHTML='<div class="prefGrid"><div><div class="prefLabel">WHAT I SHOULD AVOID</div>'+(groups.avoid.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div><div><div class="prefLabel">WHAT YOU SEEM TO LIKE</div>'+(groups.like.join("")||'<div class="emptyMemory">Nothing learned yet</div>')+'</div></div><div class="sessionFoot">Session memory · '+prefs.length+' signals · source-aware</div>';
+  }catch(e){console.warn(e)}
+}
+function captureIntentSignals(text,source){
+  const q=String(text||"").toLowerCase();
+  const sid=sessionId();
+  if(/shiny|chamak|flashy|glitter|satin|silk finish/.test(q)) recordSignal("finish","avoid shiny/flashy","User explicitly rejected shiny or flashy finishes",source,"explicit","high");
+  if(/formal|uncle/.test(q)) recordSignal("formality","avoid overly formal","User said they do not want a formal/uncle-type look",source,"explicit","high");
+  if(/relaxed|casual|comfortable|comfy/.test(q)) recordSignal("fit/style","prefer relaxed and comfortable","Current request indicates a relaxed/comfortable preference",source,"inferred","medium");
+  if(/classy|elegant/.test(q)) recordSignal("style","prefer classy/elegant","Current request indicates a classy/elegant preference",source,"inferred","medium");
+  if(/youthful|young/.test(q)) recordSignal("style","prefer youthful","Current request indicates a youthful preference",source,"inferred","medium");
+  const bm=q.match(/(?:₹|rs\.?|rupees?\s*)([0-9,]+)/i); if(bm) recordSignal("budget","up to ₹"+bm[1],"Budget stated in current request",source,"explicit","high");
 }
 function updateIntelligence(q,found,picks){
   const text=String(q||"").toLowerCase();
@@ -94,7 +143,7 @@ function installRecommendationActions(items){
     const reason=b.dataset.reason||"too formal";
     try{
       stage("Rejection received","NØPE is turning your “Nope” into a preference signal.","nMemory");
-      const saved=await mcp("record_preference",{user_id:"demo-user",preference:"formality",value:"avoid overly formal",reason,confidence:"medium"});
+      const saved=await mcp("record_preference",{user_id:"demo-user",preference:"formality",value:"avoid overly formal",reason,confidence:"medium",session_id:sessionId(),source:"ui",signal_type:"rejection"});
       if(saved.status!=="SAVED")throw Error("Preference was not saved");
       showLearnedMemory("avoid overly formal",reason);
       stage("Memory updated","Formality negative signal saved. Searching again with the new constraint.","nCatalog");
@@ -133,7 +182,7 @@ const mic=$("mic"), hint=$("hint"), transcriptEl=$("transcript"), statusEl=$("st
 
 function setStatus(t,c){if(statusEl){statusEl.textContent=t;statusEl.className="status "+(c||"")}}
 function stage(t,d,n){$("stageTitle").textContent=t;$("stageDetail").textContent=d;["nGnani","nAgent","nMemory","nCatalog","nTts"].forEach(x=>$(x)?.classList.remove("live"));if(n)$(n)?.classList.add("live");const e=document.createElement("div");e.className="event";e.innerHTML='<span class="dot on"></span><span><b>'+t+"</b> — "+d+"</span>";$("timeline").prepend(e)}
-function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
+function addToCart(p,button){if(!cart.some(x=>x.id===p.id)){cart.push(p);recordSignal("product affinity",p.name,"User added this recommendation to bag","ui","add_to_bag","medium");if(button){button.textContent="✓ Added";button.classList.add("added")}$("cartCount").textContent=cart.length;setStatus(p.name+" added to your bag.","ok")}}
 function renderShop(filter){
  const root=$("shopProducts");let items=SHOP_PRODUCTS;
  if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
@@ -186,7 +235,7 @@ async function runNopeVoice(){
  try{await audio.play()}catch(e){console.warn("Autoplay blocked; audio controls remain available.",e)}
  hint.textContent="NØPE replied — click 🎙️ to speak again";setStatus("✓ Full voice loop complete","ok");
 }
-async function processTranscript(text){transcript=String(text||"").trim();if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
+async function processTranscript(text,source="text"){transcript=String(text||"").trim();if(!transcript){setStatus("I didn't catch that. Please try again.","err");return}captureIntentSignals(transcript,source);transcriptEl.textContent=transcript;hint.textContent="NØPE is thinking…";setStatus("✓ Voice/text received","ok");try{await runNopeVoice()}catch(e){console.error(e);setStatus("NØPE error: "+e.message,"err");hint.textContent="Try again or use the text box."}}
 async function start(){
  setStatus("🎙 Click registered — requesting microphone…","ok");
  if(!navigator.mediaDevices?.getUserMedia)throw Error("Microphone API unavailable. Use Chrome or Edge over HTTPS.");
@@ -205,7 +254,7 @@ async function start(){
    const decoded=await ctx.decodeAudioData(await blob.arrayBuffer()),wav=audioBufferToWav(decoded);await ctx.close();
    const r=await mcp("gnani_speech_to_text",{audio_base64:await b64(wav),language_code:"hi-IN",preferred_language:"hi-IN",format:"transcribe"});
    if(!r.success)throw Error(r.error||("Gnani STT failed: "+r.status_code));
-   await processTranscript(typeof r.transcript==="string"?r.transcript:JSON.stringify(r.transcript));
+   await processTranscript(typeof r.transcript==="string"?r.transcript:JSON.stringify(r.transcript),"voice");
   }catch(e){console.error(e);hint.textContent="Voice failed — type below if needed";setStatus("Voice error: "+e.message,"err")}
  };
  recorder.start(250);
@@ -215,7 +264,7 @@ mic.addEventListener("click",async e=>{
  try{if(!recording)await start();else{setStatus("Stopping recording…","ok");recording=false;recorder.stop()}}
  catch(e){recording=false;mic.classList.remove("recording");mic.textContent="🎙";console.error(e);setStatus("Microphone error: "+e.name+" — "+e.message,"err");hint.textContent="Click again after allowing microphone access."}
 });
-$("sendText").onclick=()=>processTranscript($("textInput").value);
+$("sendText").onclick=()=>processTranscript($("textInput").value,"text");
 $("textInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("sendText").click()});
 document.querySelectorAll(".chip[data-cat]").forEach(c=>c.onclick=()=>{document.querySelectorAll(".chip[data-cat]").forEach(x=>x.classList.remove("active"));c.classList.add("active");renderShop(c.dataset.cat)});
 $("surprise").onclick=()=>processTranscript("Find me a classy relaxed shirt under ₹3000");
@@ -236,6 +285,7 @@ $("cartBtn").onclick=async()=>{
  }catch(e){setStatus("Checkout error: "+e.message,"err")}
 };
 renderShop("all");
+refreshSessionView();
 installGuidedDemo();
 if(!navigator.mediaDevices?.getUserMedia)hint.textContent="Mic unavailable — use the text box below.";
 else hint.textContent="Click 🎙️ → Allow microphone → speak → click again to send";
