@@ -627,7 +627,13 @@ function renderShopCore(items){
 }
 function renderShop(filter){
  let items=SHOP_PRODUCTS;
- if(filter&&filter!=="all")items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
+ if(!filter||filter==="all"){
+   const demoMix=["vshirt-linen-sand","vtee-essential-white","oshirt-oxford-navy","otee-heavy-white","vshirt-boxy-olive","vtee-modal-black","oshirt-linen-ivory","otee-pigment-olive"];
+   const lead=demoMix.map(id=>SHOP_PRODUCTS.find(p=>p.id===id)).filter(Boolean);
+   items=[...lead,...SHOP_PRODUCTS.filter(p=>!lead.some(x=>x.id===p.id))];
+ }else{
+   items=items.filter(p=>filter==="shirts"||p.meta.toLowerCase().includes(filter==="wedding"?"wedding":"casual"));
+ }
  if(!demoBaseline.length)demoBaseline=items.slice(0,8).map(p=>p.name);
  renderShopCore(items);
 }
